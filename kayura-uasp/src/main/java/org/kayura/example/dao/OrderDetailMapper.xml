@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.OrderDetailMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.OrderDetail">
+		<id column="DetailID" property="id" />
+		<result column="OrderID" property="orderId" />
+		<result column="UnitPrice" property="unitPrice" />
+		<result column="Quantity" property="quantity" />
+		<result column="Discount" property="discount" />
+		<association property="product" javaType="org.kayura.example.po.Product">
+			<id column="ProductID" property="id"/>
+			<result column="ProductName" property="name"/>
+		</association>
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+		t.DetailID, t.OrderID, t.ProductID, t.UnitPrice, t.Quantity, t.Discount
+	</sql>
+	
+	<select id="getById" resultMap="BaseResultMap" parameterType="int">
+		select
+			<include refid="Base_Column_List" />,
+			p.ProductName
+		from example_orderdetails AS t
+			INNER JOIN example_products AS p ON t.ProductID = p.ProductID
+		where t.DetailID = #{id}
+	</select>
+	
+	<select id="findByMap" resultMap="BaseResultMap" parameterType="map">
+		select
+			<include refid="Base_Column_List" />,
+			p.ProductName
+		from example_orderdetails AS t
+			INNER JOIN example_products AS p ON t.ProductID = p.ProductID
+		<where>
+			<if test="id != null">
+				AND t.DetailID = #{id}
+			</if>
+		</where>
+	</select>
+	
+	<delete id="deleteByKey" parameterType="int">
+		delete from example_orderdetails
+		where DetailID = #{id}
+	</delete>
+	
+	<insert id="insert" parameterType="org.kayura.example.po.OrderDetail">
+		insert into example_orderdetails (
+			DetailID, 
+			OrderID, 
+			ProductID,
+			UnitPrice,
+			Quantity,
+			Discount
+		) values (
+			#{id},
+			#{orderId},
+			#{product.id},
+			#{unitPrice}, 
+			#{quantity},
+			#{discount}
+		)
+	</insert>
+	
+	<insert id="insertSelective" parameterType="org.kayura.example.po.OrderDetail">
+		insert into example_orderdetails
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="orderId != null">
+				OrderID,
+			</if>
+			<if test="product != null">
+				ProductID,
+			</if>
+			<if test="unitPrice != null">
+				UnitPrice,
+			</if>
+			<if test="quantity != null">
+				Quantity,
+			</if>
+			<if test="discount != null">
+				Discount,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="orderId != null">
+				#{orderId},
+			</if>
+			<if test="product != null">
+				#{product.id},
+			</if>
+			<if test="unitPrice != null">
+				#{unitPrice},
+			</if>
+			<if test="quantity != null">
+				#{quantity},
+			</if>
+			<if test="discount != null">
+				#{discount},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.OrderDetail">
+		update example_orderdetails
+		<set>
+			<if test="order != null">
+				OrderID = #{orderId},
+			</if>
+			<if test="product != null">
+				ProductID = #{product.id},
+			</if>
+			<if test="unitPrice != null">
+				UnitPrice = #{unitPrice},
+			</if>
+			<if test="quantity != null">
+				Quantity = #{quantity},
+			</if>
+			<if test="discount != null">
+				Discount = #{discount},
+			</if>
+		</set>
+		where DetailID = #{id}
+	</update>
+	
+	<update id="updateByKey" parameterType="org.kayura.example.po.OrderDetail">
+		update example_orderdetails
+		set OrderID = #{orderId},
+			ProductID = #{product.id},
+			UnitPrice = #{unitPrice},
+			Quantity = #{quantity},
+			Discount = #{discount}
+		where DetailID = #{id}
+	</update>
+	
+</mapper>

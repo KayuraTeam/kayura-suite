@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:tx="http://www.springframework.org/schema/tx"
+	default-lazy-init="false"
+	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
+		http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx.xsd">
+
+	<beans:description>
+		该配置文件提供给 Kayura Servlet 对象使用.
+	</beans:description>
+
+	<mvc:annotation-driven>
+		<mvc:message-converters>
+			<beans:bean
+				class="org.springframework.http.converter.StringHttpMessageConverter">
+				<beans:constructor-arg value="UTF-8" />
+			</beans:bean>
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+
+	<mvc:resources mapping="/res/**" location="/res/" />
+	<mvc:resources mapping="/editor-app/**" location="/res/activiti/editor-app/" />
+	<mvc:resources mapping="/views/**/*.js" location="/views/" />
+
+	<beans:bean
+		class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+		<beans:property name="prefix" value="/" />
+		<beans:property name="suffix" value=".jsp" />
+	</beans:bean>
+
+	<beans:bean id="multipartResolver"
+		class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<beans:property name="defaultEncoding" value="UTF-8" />
+		<beans:property name="maxUploadSize" value="1024000000000" />
+	</beans:bean>
+
+	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/file/upload**" />
+			<beans:bean class="org.kayura.uasp.servlet.FileUploadInterceptor">
+				<beans:property name="maxSize" value="102400000" />
+			</beans:bean>
+		</mvc:interceptor>
+	</mvc:interceptors>
+
+	<context:component-scan base-package="org.kayura.*.controller" />
+
+</beans:beans>

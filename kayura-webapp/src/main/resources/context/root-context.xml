@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd">
+
+	<!-- 扫描指定包内被标注的对象，并创建SpringBean对象. -->
+	<context:component-scan base-package="org.kayura.*.service.impl" />
+
+	<import resource="datasource-context.xml" />
+	<import resource="activiti-context.xml" />
+	<import resource="security-context.xml" />
+
+	<bean class="org.kayura.web.easyui.EasyUISupport" />
+	<bean class="org.kayura.spring.SpringBeanManager" />
+	<bean class="com.fasterxml.jackson.databind.ObjectMapper" />
+	
+	<!-- 配置表单视图模板 -->
+	<bean class="org.kayura.formbuilder.vo.FormViewTempletes">
+		<property name="templetes">
+			<map key-type="java.lang.String" value-type="java.lang.String">
+				<entry key="s" value="views/formbuilder/templete/simple" />
+				<entry key="d" value="views/formbuilder/templete/dingtalk" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean id="storageExecutor" class="org.kayura.uasp.provider.FileUploadProviderImpl">
+		<property name="minSpace" value="${fileUpload.minSpace}" />
+		<property name="tempPath" value="${fileUpload.tempPath}" />
+		<property name="uploadPaths">
+			<map>
+				<entry key="${fileUpload.disk1}" value="${fileUpload.diskPath1}" />
+			</map>
+		</property>
+	</bean>
+	
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping" />
+	
+	<bean class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="contentNegotiationManager">
+			<bean
+				class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+				<property name="ignoreAcceptHeader" value="true" />
+				<property name="defaultContentType" value="text/html" />
+				<property name="mediaTypes">
+					<map>
+						<entry key="html" value="text/html" />
+						<entry key="xml" value="application/xml" />
+						<entry key="json" value="application/json" />
+					</map>
+				</property>
+			</bean>
+		</property>
+		<property name="defaultViews">
+			<list>
+				<!-- JSON View -->
+				<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView">
+				</bean>
+				<!-- XML View -->
+				<bean class="org.springframework.web.servlet.view.xml.MarshallingView">
+					<constructor-arg>
+						<bean class="org.springframework.oxm.xstream.XStreamMarshaller">
+							<property name="autodetectAnnotations" value="true" />
+						</bean>
+					</constructor-arg>
+				</bean>
+			</list>
+		</property>
+	</bean>
+
+</beans>

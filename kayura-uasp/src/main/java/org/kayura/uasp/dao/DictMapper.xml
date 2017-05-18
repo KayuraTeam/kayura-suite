@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.3//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.uasp.dao.DictMapper">
+
+	<resultMap id="dictDefineMap" type="org.kayura.uasp.po.DictDefine">
+		<id property="id" column="Dict_Id" />
+		<result property="code" column="Code" />
+		<result property="name" column="Name" />
+		<result property="catetory" column="Catetory" />
+		<result property="dataType" column="DataType" />
+		<result property="description" column="Description" />
+	</resultMap>
+
+	<resultMap id="dictItemMap" type="org.kayura.uasp.po.DictItem">
+		<id property="id" column="Item_Id" />
+		<result property="parentId" column="Parent_Id" />
+		<result property="parentName" column="ParentName" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="dictId" column="Dict_Id" />
+		<result property="dictName" column="DictName" />
+		<result property="name" column="Name" />
+		<result property="value" column="Value" />
+		<result property="serial" column="Serial" />
+		<result property="isFixed" column="IsFixed" />
+	</resultMap>
+	
+	<sql id="dictDefinceColumns">
+		t.Dict_Id,
+		t.Code,
+		t.Name,
+		t.Catetory,
+		t.DataType,
+		t.Description
+	</sql>
+	
+	<select id="loadDictDefinces" parameterType="string" resultMap="dictDefineMap">
+		SELECT
+			<include refid="dictDefinceColumns" />
+		FROM USAP_DictDefine t
+	</select>
+
+	<select id="getDictDefineById" parameterType="string" resultMap="dictDefineMap">
+		SELECT
+			<include refid="dictDefinceColumns" />
+		FROM USAP_DictDefine t
+		WHERE t.Dict_id = #{value}
+	</select>
+
+	<sql id="dictItemColumns">
+		t.Item_Id,
+		t.Parent_Id,
+		t.Tenant_Id,
+		t.Dict_Id,
+		t.Name,
+		t.Value,
+		t.Serial,
+		t.IsFixed
+	</sql>
+	
+	<select id="findDictItems" parameterType="map" resultMap="dictItemMap">
+		SELECT
+			<include refid="dictItemColumns" />
+		FROM UASP_DictItems t
+		<where>
+			<if test="tenantId == null">
+				AND ( t.Tenant_Id IS NULL )
+			</if>
+			<if test="tenantId != null">
+				AND ( ( t.Tenant_Id IS NULL) OR (t.Tenant_Id = #{tenantId} ) )
+			</if>
+			<if test="dictId != null">
+				AND ( t.Dict_Id = #{dictId} )
+			</if>
+			<if test="parentId != null">
+				AND ( t.Parent_Id = #{parentId} )
+			</if>
+			<if test="itemId != null">
+				AND ( t.Item_Id = #{itemId} )
+			</if>
+		</where>
+		ORDER BY t.Serial
+	</select>
+	
+	<select id="getDictItemsById" parameterType="string" resultMap="dictItemMap">
+		SELECT
+			<include refid="dictItemColumns" />,
+			d.Name AS DictName,
+			p.Name AS ParentName
+		FROM UASP_DictItems AS t 
+			INNER JOIN USAP_DictDefine AS d ON d.Dict_Id = t.Dict_Id
+			LEFT JOIN UASP_DictItems AS p ON p.Item_Id = t.Parent_Id
+		WHERE ( t.Item_Id = #{value} )
+	</select>
+
+	<insert id="insertDictItem" parameterType="org.kayura.uasp.po.DictItem">
+		INSERT UASP_DictItems (
+			Item_Id,
+			Parent_Id,
+			Dict_Id,
+			Tenant_Id,
+			Name,
+			Value,
+			Serial,
+			IsFixed
+		) VALUES (
+			#{id},
+			#{parentId},
+			#{dictId},
+			#{tenantId},
+			#{name},
+			#{value},
+			#{serial},
+			#{isFixed}
+		)
+	</insert>
+	
+	<update id="updateDictItem" parameterType="org.kayura.uasp.po.DictItem">
+		UPDATE UASP_DictItems
+		SET	Name = #{name},
+			Value = #{value},
+			Serial = #{serial}
+		WHERE ( Item_Id = #{id} )
+	</update>
+	
+	<update id="increaseDictItemSerial" parameterType="string">
+		UPDATE UASP_DictItems
+		SET	 Serial = Serial + 1 
+		WHERE ( Item_Id = #{value} )
+	</update>
+	
+	<delete id="deleteDictItem" parameterType="string">
+		DELETE FROM UASP_DictItems WHERE ( Item_Id = #{value} )
+	</delete>
+	
+</mapper>

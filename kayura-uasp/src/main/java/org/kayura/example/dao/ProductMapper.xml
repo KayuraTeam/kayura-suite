@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.ProductMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.Product">
+		<id column="ProductID" property="id"  />
+		<result column="ProductName" property="name" />
+		<result column="QuantityPerUnit" property="quantityPerUnit" />
+		<result column="UnitPrice" property="unitPrice" />
+		<result column="UnitsInStock" property="unitsInStock" />
+		<result column="UnitsOnOrder" property="unitsOnOrder" />
+		<result column="ReorderLevel" property="reorderLevel" />
+		<result column="Discontinued" property="discontinued" />
+		<association property="supplier" javaType="org.kayura.example.po.Supplier">
+			<id column="SupplierID" property="id"/>
+			<result column="SupplierName" property="name"/>
+		</association>
+		<association property="category" javaType="org.kayura.example.po.Category">
+			<id column="CategoryID" property="id"/>
+			<result column="CategoryName" property="name"/>
+		</association>
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+		t.ProductID, t.ProductName, t.SupplierID, t.CategoryID,
+		t.QuantityPerUnit, t.UnitPrice, t.UnitsInStock,
+		t.UnitsOnOrder, t.ReorderLevel, t.Discontinued
+	</sql>
+	
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="int">
+		select
+			<include refid="Base_Column_List" />,
+			s.CompanyName AS SupplierName,
+			c.CategoryName
+		FROM example_products AS t
+			INNER JOIN example_categories AS c ON t.CategoryID = c.CategoryID
+			INNER JOIN example_suppliers AS s ON t.SupplierID = s.SupplierID
+		where ProductID = #{id}
+	</select>
+	
+	<select id="findByMap" resultMap="BaseResultMap" parameterType="map">
+		select
+			<include refid="Base_Column_List" />,
+			s.CompanyName AS SupplierName,
+			c.CategoryName
+		FROM example_products AS t
+			INNER JOIN example_categories AS c ON t.CategoryID = c.CategoryID
+			INNER JOIN example_suppliers AS s ON t.SupplierID = s.SupplierID
+		<where>
+			<if test="keyword != null">
+				AND ( t.ProductName LIKE #{keyword} )
+			</if>
+		</where>
+	</select>
+	
+	<delete id="deleteByKey" parameterType="int">
+		delete from example_products
+		where ProductID = #{id}
+	</delete>
+	
+	<insert id="insert" parameterType="org.kayura.example.po.Product">
+		insert into example_products (
+			ProductName, 
+			SupplierID, 
+			CategoryID, 
+			QuantityPerUnit, 
+			UnitPrice, 
+			UnitsInStock, 
+			UnitsOnOrder, 
+			ReorderLevel, 
+			Discontinued 
+		) values ( 
+			#{name},
+			#{supplier.id},
+			#{category.id}, 
+			#{quantityPerUnit},
+			#{unitPrice},
+			#{unitsInStock},
+			#{unitsOnOrder},
+			#{reorderLevel},
+			#{discontinued}
+		)
+	</insert>
+	
+	<insert id="insertSelective" parameterType="org.kayura.example.po.Product">
+		insert into example_products
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				ProductName,
+			</if>
+			<if test="supplier != null">
+				SupplierID,
+			</if>
+			<if test="category != null">
+				CategoryID,
+			</if>
+			<if test="quantityPerUnit != null">
+				QuantityPerUnit,
+			</if>
+			<if test="unitPrice != null">
+				UnitPrice,
+			</if>
+			<if test="unitsInStock != null">
+				UnitsInStock,
+			</if>
+			<if test="unitsOnOrder != null">
+				UnitsOnOrder,
+			</if>
+			<if test="reorderLevel != null">
+				ReorderLevel,
+			</if>
+			<if test="discontinued != null">
+				Discontinued,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				#{name},
+			</if>
+			<if test="supplier != null">
+				#{supplier.id},
+			</if>
+			<if test="category != null">
+				#{category.id},
+			</if>
+			<if test="quantityPerUnit != null">
+				#{quantityPerUnit},
+			</if>
+			<if test="unitPrice != null">
+				#{unitPrice},
+			</if>
+			<if test="unitsInStock != null">
+				#{unitsInStock},
+			</if>
+			<if test="unitsOnOrder != null">
+				#{unitsOnOrder},
+			</if>
+			<if test="reorderLevel != null">
+				#{reorderLevel},
+			</if>
+			<if test="discontinued != null">
+				#{discontinued},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.Product">
+		update example_products
+		<set>
+			<if test="name != null">
+				ProductName = #{name},
+			</if>
+			<if test="supplier != null">
+				SupplierID = #{supplier.id},
+			</if>
+			<if test="category != null">
+				CategoryID = #{category.id},
+			</if>
+			<if test="quantityPerUnit != null">
+				QuantityPerUnit = #{quantityPerUnit},
+			</if>
+			<if test="unitPrice != null">
+				UnitPrice = #{unitPrice},
+			</if>
+			<if test="unitsInStock != null">
+				UnitsInStock = #{unitsInStock},
+			</if>
+			<if test="unitsOnOrder != null">
+				UnitsOnOrder = #{unitsOnOrder},
+			</if>
+			<if test="reorderLevel != null">
+				ReorderLevel = #{reorderLevel},
+			</if>
+			<if test="discontinued != null">
+				Discontinued = #{discontinued},
+			</if>
+		</set>
+		where ProductID = #{id}
+	</update>
+	
+	<update id="updateByKey" parameterType="org.kayura.example.po.Product">
+		update example_products
+		set ProductName = #{name},
+			SupplierID = #{supplier.id},
+			CategoryID = #{category.id},
+			QuantityPerUnit = #{quantityPerUnit},
+			UnitPrice = #{unitPrice},
+			UnitsInStock = #{unitsInStock},
+			UnitsOnOrder = #{unitsOnOrder},
+			ReorderLevel = #{reorderLevel},
+			Discontinued = #{discontinued}
+		where ProductID = #{id}
+	</update>
+	
+</mapper>

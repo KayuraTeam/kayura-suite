@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.activiti.repository.IdentityMapper">
+
+	<resultMap id="userResultMap" type="org.activiti.engine.impl.persistence.entity.UserEntity">
+		<id property="id" column="ID_" jdbcType="VARCHAR" />
+		<result property="firstName" column="FIRST_" jdbcType="VARCHAR" />
+		<result property="lastName" column="LAST_" jdbcType="VARCHAR" />
+		<result property="email" column="EMAIL_" jdbcType="VARCHAR" />
+	</resultMap>
+	
+	<resultMap id="groupResultMap" type="org.activiti.engine.impl.persistence.entity.GroupEntity">
+		<id property="id" column="ID_" jdbcType="VARCHAR" />
+		<result property="name" column="NAME_" jdbcType="VARCHAR" />
+		<result property="type" column="TYPE_" jdbcType="VARCHAR" />
+	</resultMap>
+
+	<select id="loadUsers" parameterType="map" resultMap="userResultMap">
+		SELECT t.ID_, t.FIRST_, t.LAST_, t.EMAIL_ FROM ACT_ID_USER t
+		<where>
+			<if test="ids != null">
+				t.ID_ IN ( 
+				<foreach collection="ids" item="id" index="index" separator=",">
+					#{id, jdbcType=VARCHAR}
+				</foreach>
+				)
+			</if>
+		</where>
+	</select>
+
+	<select id="loadGroups" parameterType="map" resultMap="groupResultMap">
+		SELECT t.ID_, t.NAME_, t.TYPE_ FROM ACT_ID_GROUP t
+		<if test="userId != null">
+			INNER JOIN act_id_membership AS m ON t.ID_ = m.GROUP_ID_
+		</if>
+		<where>
+			<if test="ids != null">
+				AND ( t.ID_ IN ( 
+				<foreach collection="ids" item="id" index="index" separator=",">
+					#{id, jdbcType=VARCHAR}
+				</foreach>
+				) )
+			</if>
+			<if test="userId != null">
+				AND ( m.USER_ID_ = #{userId} )
+			</if>
+			<if test="groupType != null">
+				AND ( t.TYPE_ = #{groupType} )
+			</if>
+		</where>
+	</select>
+	
+</mapper>

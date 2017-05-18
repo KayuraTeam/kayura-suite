@@ -1,0 +1,70 @@
+<div class="modal" ng-controller="KisBpmAssignmentSelectorPopupCtrl">
+    <div ng-class="{ 'group': 'modal-dialog modal-selector-group', 'user': 'modal-dialog modal-selector-user' } [selector.config.selectType]">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true" ng-click="selector.closeSelector()">&times;</button>
+                <h2 translate>组织机构选择器</h2>
+            </div>
+            <div class="modal-body">
+             	<div class="form-group">
+			    <div class="row row-no-gutter">
+			        <div ng-class="{ 'group': 'col-xs-6', 'user': 'col-xs-4' } [selector.config.selectType]">
+			        	<table>
+			        		<tr><td>
+		        				<label for="filterType" style="float: left;">组织类型：</label>
+				           		<select id="filterType" class="form-control" style="float: left;width: 95px;" 
+				           			ng-model="selector.findGroupType" ng-change="selector.findGroups()" 
+				           			ng-options="a.value as a.text for a in selector.groupCategories">
+					            </select>
+					            <input type="text" class="form-control" style="float: left;width: 125px;" ng-model="selector.findGroupKeyword" ng-change="selector.findGroups()" placeholder="输入搜索关键字" />
+			        		</td></tr>
+			        		<tr><td>
+				            	<div class="kis-group-user-grid" ng-grid="selector.gridGroups"></div>
+			        		</td></tr>
+			        		<tr><td>
+				        		<div ng-if="selector.config.selectType == 'group'">
+					            	<input style="float: right;" type="button" class="btn" value="添加" ng-click="selector.addSelectionGroup()" />
+				        		</div>
+			        		</td></tr>
+			        	</table>
+			        </div>
+				    <div ng-if="selector.config.selectType == 'user'">
+				        <div class="col-xs-4">
+				        	<table>
+				        		<tr><td>
+						            <input type="text" class="form-control" style="float: left;width: 125px;" ng-model="selector.findUserKeyword" ng-change="selector.findUsers()" placeholder="输入搜索关键字" />
+				        		</td></tr>
+				        		<tr><td>
+					            	<div class="kis-group-user-grid" ng-grid="selector.gridUsers"></div>
+				        		</td></tr>
+				        		<tr><td>
+				            		<input style="float: right;" type="button" class="btn" value="添加" ng-click="selector.addSelectionUser()" />
+				        		</td></tr>
+				        	</table>
+				        </div>
+			        </div>
+			        <div ng-class="{ 'group': 'col-xs-6', 'user': 'col-xs-4' } [selector.config.selectType]">
+			        	<table>
+			        		<tr><td style="height: 34px">
+					            <label>已经选择项：</label>
+			        		</td></tr>
+			        		<tr><td>
+				            	<div class="kis-group-user-grid" ng-grid="selector.gridSelectedItems"></div>
+			        		</td></tr>
+			        		<tr><td>
+				            	<input style="float: right;" type="button" class="btn" value="移除" ng-click="selector.removeSelectionItem()"/>
+			        		</td></tr>
+			        	</table>
+			        </div>
+			    </div>
+			    </div>
+            </div>
+            <div class="modal-footer">
+				<input type="text" class="form-control" ng-model="selector.inputCustomExpr" style="float: left; width: 240px; margin-left: 15px;" placeholder="自定义表达式" />
+				<input style="float: left;margin-left: 5px;" type="button" class="btn" value="添加" ng-click="selector.addCustomExpr()" />
+                <button ng-click="selector.closeSelector()" class="btn btn-primary" translate>ACTION.CANCEL</button>
+                <button ng-click="selector.saveSelector()" class="btn btn-primary" translate>ACTION.SAVE</button>
+            </div>
+        </div>
+    </div>
+</div>

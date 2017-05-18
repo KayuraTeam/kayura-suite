@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.activiti.repository.BizFormMapper">
+
+	<resultMap id="bizFormResultMap" type="org.kayura.activiti.model.BizForm">
+		<id property="id" column="BizForm_Id" />
+		<result property="tenantId" column="Tenant_Id"/>
+		<result property="code" column="Code" />
+		<result property="displayName" column="DisplayName" />
+		<result property="processKey" column="ProcessKey" />
+		<result property="iconUrl" column="IconUrl" />
+		<result property="serial" column="Serial" />
+		<result property="description" column="Description" />
+		<result property="type" column="Type" />
+		<result property="status" column="Status" />
+	</resultMap>
+	
+	<sql id="bizForm_Columns">
+		t.BizForm_Id,
+		t.Tenant_Id,
+		t.Code,
+		t.DisplayName,
+		t.ProcessKey,
+		t.IconUrl,
+		t.Serial,
+		t.Description,
+		t.Type,
+		t.Status
+	</sql>
+
+	<select id="findBizForms" parameterType="map" resultMap="bizFormResultMap">
+		SELECT <include refid="bizForm_Columns" />
+		FROM uasp_bizform AS t
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status = #{status} )
+			</if>
+			<if test="keyword != null">
+				AND ( t.Code LIKE #{keyword} OR t.DisplayName LIKE #{keyword} OR t.Description LIKE ${keyword} )
+			</if>
+		</where>
+	</select>
+		
+	<select id="loadBizForms" parameterType="map" resultMap="bizFormResultMap">
+		SELECT <include refid="bizForm_Columns" />
+		FROM uasp_bizform AS t
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status = #{status} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="selectBizForm" parameterType="map" resultMap="bizFormResultMap">
+		SELECT <include refid="bizForm_Columns" />
+		FROM uasp_bizform AS t
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="code != null">
+				AND ( t.Code = #{code} )
+			</if>
+			<if test="bizFormId != null">
+				AND ( t.BizForm_Id = #{bizFormId} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="getBizFormById" parameterType="map" resultMap="bizFormResultMap">
+		SELECT <include refid="bizForm_Columns" />
+		FROM uasp_bizform AS t
+		WHERE t.BizForm_Id = #{id}
+	</select>
+
+	<insert id="insertBizForm" parameterType="org.kayura.activiti.model.BizForm">
+		INSERT uasp_bizform (
+			BizForm_Id,
+			Tenant_Id,
+			Code,
+			DisplayName,
+			ProcessKey,
+			IconUrl,
+			Serial,
+			Description,
+			Type,
+			Status
+		) VALUES (
+			#{id},
+			#{tenantId},
+			#{code},
+			#{displayName},
+			#{processKey},
+			#{iconUrl},
+			#{serial},
+			#{description},
+			#{type},
+			#{status}
+		)
+	</insert>
+	
+	<update id="updateBizForm" parameterType="map">
+		UPDATE uasp_bizform
+		<set>
+			<if test="code != null">
+				Code = #{code},
+			</if>
+			<if test="displayName != null">
+				DisplayName = #{displayName},
+			</if>
+			<if test="processKey != null">
+				ProcessKey = #{processKey},
+			</if>
+			<if test="iconUrl != null">
+				IconUrl = #{iconUrl},
+			</if>
+			<if test="serial != null">
+				Serial = #{serial},
+			</if>
+			<if test="description != null">
+				Description = #{description},
+			</if>
+			<if test="type != null">
+				Type = #{type},
+			</if>
+			<if test="status != null">
+				Status = #{status},
+			</if>
+		</set>
+		WHERE BizForm_Id = #{id}
+	</update>
+	
+	<delete id="deleteBizForms" parameterType="map">
+		DELETE FROM uasp_bizform
+		<where>
+			<if test="id != null">
+				AND ( BizForm_Id = #{id} )
+			</if>
+			<if test="ids != null">
+				AND ( BizForm_Id IN ( 
+				<foreach collection="ids" separator="," item="item"> #{item} </foreach>
+				) )
+			</if>
+		</where>
+	</delete>
+
+</mapper>

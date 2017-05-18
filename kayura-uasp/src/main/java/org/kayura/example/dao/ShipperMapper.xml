@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.ShipperMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.Shipper">
+		<id column="ShipperID" property="id" />
+		<result column="CompanyName" property="name" />
+		<result column="Phone" property="phone" />
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+		ShipperID, CompanyName, Phone
+	</sql>
+	
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="int">
+		select
+		<include refid="Base_Column_List" />
+		from example_shippers
+		where ShipperID = #{id}
+	</select>
+	
+	<delete id="deleteByKey" parameterType="int">
+		delete from
+		example_shippers
+		where ShipperID = #{id}
+	</delete>
+	
+	<insert id="insert" parameterType="org.kayura.example.po.Shipper">
+		insert into example_shippers (
+			ShipperID, 
+			CompanyName, 
+			Phone
+		) values (
+			#{id}, 
+			#{name},
+			#{phone}
+		)
+	</insert>
+	
+	<insert id="insertSelective" parameterType="org.kayura.example.po.Shipper">
+		insert into example_shippers
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				CompanyName,
+			</if>
+			<if test="phone != null">
+				Phone,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				#{name},
+			</if>
+			<if test="phone != null">
+				#{phone},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.Shipper">
+		update example_shippers
+		<set>
+			<if test="name != null">
+				CompanyName = #{name},
+			</if>
+			<if test="phone != null">
+				Phone = #{phone},
+			</if>
+		</set>
+		where ShipperID = #{id}
+	</update>
+	
+	<update id="updateByKey" parameterType="org.kayura.example.po.Shipper">
+		update example_shippers
+		set CompanyName = #{name},
+			Phone = #{phone}
+		where ShipperID = #{id}
+	</update>
+	
+</mapper>

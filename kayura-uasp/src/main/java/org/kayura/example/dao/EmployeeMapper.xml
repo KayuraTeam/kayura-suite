@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.EmployeeMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.Employee">
+		<id column="EmployeeID" property="id" />
+		<result column="LastName" property="lastName" />
+		<result column="FirstName" property="firstName" />
+		<result column="Title" property="title" />
+		<result column="TitleOfCourtesy" property="titleOfCourtesy" />
+		<result column="BirthDate" property="birthDate" />
+		<result column="HireDate" property="hireDate" />
+		<result column="Address" property="address" />
+		<result column="City" property="city" />
+		<result column="Region" property="region" />
+		<result column="PostalCode" property="postalCode" />
+		<result column="Country" property="country" />
+		<result column="HomePhone" property="homePhone" />
+		<result column="Extension" property="extension" />
+		<result column="Notes" property="notes" />
+		<result column="ReportsTo" property="reportsTo" />
+		<result column="PhotoPath" property="photoPath" />
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+		EmployeeID, LastName, FirstName, Title, TitleOfCourtesy,
+		BirthDate, HireDate,
+		Address, City, Region, PostalCode, Country,
+		HomePhone, Extension, Notes, ReportsTo,
+		PhotoPath
+	</sql>
+	
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="int">
+		select
+		<include refid="Base_Column_List" />
+		from example_employees
+		where EmployeeID = #{id}
+	</select>
+	
+	<delete id="deleteByKey" parameterType="java.lang.Integer">
+		delete from example_employees
+		where EmployeeID = #{id}
+	</delete>
+	
+	<insert id="insert" parameterType="org.kayura.example.po.Employee">
+		insert into example_employees (
+			EmployeeID, 
+			LastName, 
+			FirstName,
+			Title, 
+			TitleOfCourtesy, 
+			BirthDate,
+			HireDate, 
+			Address, 
+			City,
+			Region, 
+			PostalCode, 
+			Country,
+			HomePhone,
+			Extension, 
+			Notes,
+			ReportsTo, 
+			PhotoPath
+		) values (
+			#{id}, 
+			#{lastName},
+			#{firstName},
+			#{title},
+			#{titleOfCourtesy},
+			#{birthDate},
+			#{hireDate}, 
+			#{address},
+			#{city},
+			#{region},
+			#{postalCode}, 
+			#{country},
+			#{homePhone}, 
+			#{extension},
+			#{notes},
+			#{reportsTo},
+			#{photopath}
+		)
+	</insert>
+	<insert id="insertSelective" parameterType="org.kayura.example.po.Employee">
+		insert into example_employees
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				EmployeeID,
+			</if>
+			<if test="lastName != null">
+				LastName,
+			</if>
+			<if test="firstName != null">
+				FirstName,
+			</if>
+			<if test="title != null">
+				Title,
+			</if>
+			<if test="titleOfCourtesy != null">
+				TitleOfCourtesy,
+			</if>
+			<if test="birthDate != null">
+				BirthDate,
+			</if>
+			<if test="hireDate != null">
+				HireDate,
+			</if>
+			<if test="address != null">
+				Address,
+			</if>
+			<if test="city != null">
+				City,
+			</if>
+			<if test="region != null">
+				Region,
+			</if>
+			<if test="postalCode != null">
+				PostalCode,
+			</if>
+			<if test="country != null">
+				Country,
+			</if>
+			<if test="homePhone != null">
+				HomePhone,
+			</if>
+			<if test="extension != null">
+				Extension,
+			</if>
+			<if test="notes != null">
+				Notes,
+			</if>
+			<if test="reportsTo != null">
+				ReportsTo,
+			</if>
+			<if test="photoPath != null">
+				PhotoPath,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="id != null">
+				#{id},
+			</if>
+			<if test="lastName != null">
+				#{lastName},
+			</if>
+			<if test="firstName != null">
+				#{firstName},
+			</if>
+			<if test="title != null">
+				#{title},
+			</if>
+			<if test="titleOfCourtesy != null">
+				#{titleOfCourtesy},
+			</if>
+			<if test="birthDate != null">
+				#{birthDate},
+			</if>
+			<if test="hireDate != null">
+				#{hireDate},
+			</if>
+			<if test="address != null">
+				#{address},
+			</if>
+			<if test="city != null">
+				#{city},
+			</if>
+			<if test="region != null">
+				#{region},
+			</if>
+			<if test="postalCode != null">
+				#{postalCode},
+			</if>
+			<if test="country != null">
+				#{country},
+			</if>
+			<if test="homePhone != null">
+				#{homePhone},
+			</if>
+			<if test="extension != null">
+				#{extension},
+			</if>
+			<if test="notes != null">
+				#{notes},
+			</if>
+			<if test="reportsTo != null">
+				#{reportsTo},
+			</if>
+			<if test="photoPath != null">
+				#{photoPath},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.Employee">
+		update example_employees
+		<set>
+			<if test="lastName != null">
+				LastName = #{lastName},
+			</if>
+			<if test="firstName != null">
+				FirstName = #{firstName},
+			</if>
+			<if test="title != null">
+				Title = #{title},
+			</if>
+			<if test="titleofcourtesy != null">
+				TitleOfCourtesy = #{titleOfCourtesy},
+			</if>
+			<if test="birthDate != null">
+				BirthDate = #{birthDate},
+			</if>
+			<if test="hireDate != null">
+				HireDate = #{hireDate},
+			</if>
+			<if test="address != null">
+				Address = #{address},
+			</if>
+			<if test="city != null">
+				City = #{city},
+			</if>
+			<if test="region != null">
+				Region = #{region},
+			</if>
+			<if test="postalCode != null">
+				PostalCode = #{postalCode},
+			</if>
+			<if test="country != null">
+				Country = #{country},
+			</if>
+			<if test="homePhone != null">
+				HomePhone = #{homePhone},
+			</if>
+			<if test="extension != null">
+				Extension = #{extension},
+			</if>
+			<if test="notes != null">
+				Notes = #{notes},
+			</if>
+			<if test="reportsTo != null">
+				ReportsTo = #{reportsTo},
+			</if>
+			<if test="photoPath != null">
+				PhotoPath = #{photoPath},
+			</if>
+		</set>
+		where EmployeeID = #{id}
+	</update>
+
+	<update id="updateByKey" parameterType="org.kayura.example.po.Employee">
+		update example_employees
+		set LastName = #{lastName},
+			FirstName = #{firstName},
+			Title = #{title},
+			TitleOfCourtesy = #{titleOfCourtesy},
+			BirthDate = #{birthDate},
+			HireDate = #{hireDate},
+			Address = #{address},
+			City = #{city},
+			Region = #{region},
+			PostalCode = #{postalCode},
+			Country = #{country},
+			HomePhone = #{homePhone},
+			Extension = #{extension},
+			Notes = #{notes},
+			ReportsTo = #{reportsTo},
+			PhotoPath = #{photoPath}
+		where EmployeeID = #{id}
+	</update>
+</mapper>

@@ -1,0 +1,836 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.3//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.uasp.dao.OrganizeMapper">
+
+	<!-- Organize -->
+
+	<resultMap id="organizeItemResultMap" type="org.kayura.uasp.po.OrganizeItem">
+		<id property="orgId" column="Org_Id" />
+		<result property="parentId" column="Parent_Id" />
+		<result property="code" column="Code" />
+		<result property="displayName" column="DisplayName" />
+		<result property="orgType" column="OrgType" />
+		<result property="serial" column="Serial" />
+		<result property="status" column="Status" />
+		<result property="count" column="Count" />
+	</resultMap>
+	
+	<sql id="orgItems_Sql">
+		SELECT c.Company_Id AS Org_Id, c.Parent_Id, c.Code, c.ShortName AS DisplayName, 1 AS OrgType, c.Serial, c.Status
+		FROM UASP_Companies AS c WHERE c.Tenant_Id = #{tenantId}
+		UNION ALL
+		SELECT d.Department_Id, IFNULL(d.Parent_Id, d.Company_Id), d.Code, d.Name, 2, d.Serial, d.Status
+		FROM UASP_Departments d WHERE d.Tenant_Id = #{tenantId}
+		UNION ALL
+		SELECT p.Position_Id, p.Department_Id, p.Code, p.Name, 3, p.Serial, p.Status
+		FROM UASP_Positions p WHERE p.Tenant_Id = #{tenantId}
+	</sql>
+
+	<select id="findOrgTree" parameterType="map" resultMap="organizeItemResultMap">
+		SELECT Org_Id, Parent_Id, Code, DisplayName, OrgType, Serial, Status, 
+		<choose>
+			<when test="parentId != null">
+		    ((SELECT COUNT(1) FROM UASP_Companies AS x WHERE x.Parent_Id = t.Org_Id) + 
+		     (SELECT COUNT(1) FROM UASP_Departments AS y WHERE y.Parent_Id = t.Org_Id OR y.Company_Id = t.Org_Id) + 
+		     (SELECT COUNT(1) FROM UASP_Positions AS z WHERE z.Department_Id = t.Org_Id)) AS Count
+			</when>
+			<otherwise>
+			0 AS count
+			</otherwise>
+		</choose>
+		FROM (
+			<include refid="orgItems_Sql"></include> 
+		) t 
+		<where>
+			<if test="parentId != null">
+			<choose>
+				<when test="parentId == 'NULL'">( t.Parent_Id IS NULL )</when>
+				<otherwise>( t.Parent_Id = #{parentId} )</otherwise>
+			</choose>
+			</if>
+			<if test="status != null">
+				AND ( t.Status = #{status} )
+			</if>
+		</where>
+		ORDER BY Serial, Code
+	</select>
+	
+	<select id="findOrgItems" parameterType="map" resultMap="organizeItemResultMap">
+		SELECT Org_Id, Parent_Id, Code, DisplayName, OrgType, Serial, Status, 0 AS count
+		FROM (
+			<include refid="orgItems_Sql"></include>
+			UNION ALL
+			SELECT i.Identity_Id, IFNULL(i.Position_Id, i.Department_Id), e.Code, e.Name, 4, 0, e.Status
+			FROM uasp_identities i INNER JOIN uasp_employees e ON i.Employee_Id = e.Employee_Id
+		  	WHERE e.Tenant_Id = #{tenantId}
+		) t 
+		<where>
+			<if test="parentId != null">
+				AND ( t.Parent_Id = #{parentId} )
+			</if>
+			<if test="keyword != null">
+				AND ( t.Code LIKE #{keyword} OR t.DisplayName LIKE #{keyword} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status = #{status} )
+			</if>
+		</where>
+		ORDER BY OrgType, Serial, Code
+	</select>
+
+	<!-- Company --> 
+	
+	<resultMap id="companyResultMap" type="org.kayura.uasp.po.Company">
+		<id property="companyId" column="Company_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="parentId" column="Parent_Id" />
+		<result property="parentName" column="ParentName" />
+		<result property="code" column="Code" />
+		<result property="shortName" column="ShortName" />
+		<result property="fullName" column="FullName" />
+		<result property="description" column="Description" />
+		<result property="industryTypeId" column="IndustryTypeId" />
+		<result property="address" column="Address" />
+		<result property="postcode" column="Postcode" />
+		<result property="telephone" column="Telephone" />
+		<result property="email" column="Email" />
+		<result property="fax" column="Fax" />
+		<result property="linkman" column="Linkman" />
+		<result property="estaDate" column="EstaDate" />
+		<result property="serial" column="Serial" />
+		<result property="status" column="Status" />
+	</resultMap>
+
+	<sql id="companyColumns_Sql">
+		t.Company_Id,
+		t.Parent_Id,
+		t.Tenant_Id,
+		t.Code,
+		t.ShortName,
+		t.FullName,
+		t.Description,
+		t.IndustryType_Id,
+		t.Address,
+		t.Postcode,
+		t.Telephone,
+		t.Email,
+		t.Fax,
+		t.Linkman,
+		t.EstaDate,
+		t.Serial,
+		t.Status,
+		t.UpdatedTime
+	</sql>
+
+	<select id="findCompanies" parameterType="map" resultMap="companyResultMap">
+		SELECT
+			<include refid="companyColumns_Sql"></include>,
+			p.FullName AS ParentName,
+			d.Name AS IndustryTypeName
+		FROM uasp_companies AS t
+			LEFT JOIN uasp_dictitems AS d ON d.Item_Id = t.IndustryType_Id
+			LEFT JOIN uasp_companies AS p ON p.Company_Id = t.Parent_Id
+		<where>
+			<if test="companyId != null">
+				AND ( t.Company_Id = #{companyId} )
+			</if>
+			<if test="_parameter.containsKey('parentId')">
+				<choose>
+					<when test="parentId != null">
+						AND (t.Parent_Id = #{parentId} )
+					</when>
+					<otherwise>
+						AND (t.Parent_Id IS NULL )
+					</otherwise>
+				</choose>
+			</if>
+			<if test="_parameter.containsKey('tenantId')">
+				<choose>
+					<when test="tenantId != null">
+						AND ( t.Tenant_Id = #{tenantId} )
+					</when>
+					<otherwise>
+						AND ( t.Tenant_Id IS NULL )
+					</otherwise>
+				</choose>
+			</if>
+			<if test="status != null">
+				AND ( t.Status IN ( ${status} ) )
+			</if>
+		</where>
+	</select>
+
+	<insert id="insertCompany" parameterType="org.kayura.uasp.po.Company">
+		INSERT uasp_companies (
+			Company_Id,
+			Parent_Id,
+			Tenant_Id,
+			Code,
+			ShortName,
+			FullName,
+			Description,
+			IndustryType_Id,
+			Address,
+			Postcode,
+			Telephone,
+			Email,
+			Fax,
+			Linkman,
+			EstaDate,
+			Serial,
+			Status,
+			UpdatedTime
+		) VALUES (
+			#{companyId},
+			#{parentId},
+			#{tenantId},
+			#{code},
+			#{shortName},
+			#{fullName},
+			#{description},
+			#{industryTypeId},
+			#{address},
+			#{postcode},
+			#{telephone},
+			#{email},
+			#{fax},
+			#{linkman},
+			#{estaDate},
+			#{serial},
+			#{status},
+			#{updatedTime}
+		)
+	</insert>
+	
+	<update id="updateCompany" parameterType="map">
+		UPDATE uasp_companies
+		<set>
+			<if test="code != null">
+				Code = #{code},
+			</if>
+			<if test="shortName != null">
+				ShortName = #{shortName},
+			</if>
+			<if test="fullName != null">
+				FullName = #{fullName},
+			</if>
+			<if test="description != null">
+				Description = #{description},
+			</if>
+			<if test="industryTypeId != null">
+				IndustryType_Id = #{industryTypeId},
+			</if>
+			<if test="address != null">
+				Address = #{address},
+			</if>
+			<if test="postcode != null">
+				Postcode = #{postcode},
+			</if>
+			<if test="telephone != null">
+				Telephone = #{telephone},
+			</if>
+			<if test="email != null">
+				Email = #{email},
+			</if>
+			<if test="fax != null">
+				Fax = #{fax},
+			</if>
+			<if test="linkman != null">
+				Linkman = #{linkman},
+			</if>
+			<if test="estaDate != null">
+				EstaDate = #{estaDate},
+			</if>
+			<if test="serial != null">
+				Serial = #{serial},
+			</if>
+			<if test="status != null">
+				Status = #{status},
+			</if>
+			<if test="updatedTime != null">
+				UpdatedTime = #{updatedTime},
+			</if>
+		</set>
+		WHERE ( Company_Id = #{companyId} )
+	</update>
+	
+	<delete id="deleteCompany" parameterType="string">
+		DELETE FROM uasp_companies
+		<where>
+			<if test="parentId != null">
+				AND ( Parent_Id = #{parentId} )
+			</if>
+			<if test="companyId != null">
+				AND ( Company_Id = #{companyId} )
+			</if>
+			<if test="tenantId != null">
+				AND ( Tenant_Id = #{tenantId} )
+			</if>
+		</where>
+	</delete>
+
+	<!-- Department -->
+
+	<resultMap id="departmentResultMap" type="org.kayura.uasp.po.Department">
+		<id property="departmentId" column="Department_Id" />
+		<result property="parentId" column="Parent_Id" />
+		<result property="parentName" column="ParentName" />
+		<result property="companyId" column="Company_Id" />
+		<result property="companyName" column="CompanyName" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="code" column="Code" />
+		<result property="name" column="Name" />
+		<result property="description" column="Description" />
+		<result property="serial" column="Serial" />
+		<result property="status" column="Status" />
+		<result property="updatedTime" column="UpdatedTime" />
+	</resultMap>
+	
+	<sql id="departmentColumns_Sql">
+		t.Department_Id,
+		t.Parent_Id,
+		t.Company_Id,
+		t.Tenant_Id,
+		t.Code,
+		t.Name,
+		t.Description,
+		t.Serial,
+		t.Status,
+		t.UpdatedTime
+	</sql>
+	
+	<select id="findDepartments" parameterType="map" resultMap="departmentResultMap">
+		SELECT
+			<include refid="departmentColumns_Sql" />,
+			c.FullName AS CompanyName,
+			d.Name AS ParentName
+		FROM uasp_departments AS t
+			LEFT JOIN uasp_companies AS c ON t.Company_Id = c.Company_Id
+			LEFT JOIN uasp_departments AS d ON t.Parent_Id = d.Department_Id
+		<where>
+			<if test="departmentId != null">
+				AND (t.Department_Id = #{departmentId} )
+			</if>
+			<if test="_parameter.containsKey('parentId')">
+				<choose>
+					<when test="parentId != null">
+						AND (t.Parent_Id = #{parentId} )
+					</when>
+					<otherwise>
+						AND (t.Parent_Id IS NULL )
+					</otherwise>
+				</choose>
+			</if>
+			<if test="companyId != null">
+				AND ( t.Company_Id = #{companyId} )
+			</if>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status IN ( ${status} ) )
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insertDepartment" parameterType="org.kayura.uasp.po.Department">
+		INSERT uasp_departments (
+			Department_Id,
+			Parent_Id,
+			Company_Id,
+			Tenant_Id,
+			Code,
+			Name,
+			Description,
+			Serial,
+			Status,
+			UpdatedTime
+		) VALUES (
+			#{departmentId},
+			#{parentId},
+			#{companyId},
+			#{tenantId},
+			#{code},
+			#{name},
+			#{description},
+			#{serial},
+			#{status},
+			#{updatedTime}
+		)
+	</insert>
+	
+	<update id="updateDepartment" parameterType="map">
+		UPDATE uasp_departments
+		<set>
+			<if test="_parameter.containsKey('parentId')">
+				Parent_Id = #{parentId},
+			</if>
+			<if test="_parameter.containsKey('companyId')">
+				Company_Id = #{companyId},
+			</if>
+			<if test="_parameter.containsKey('code')">
+				Code = #{code},
+			</if>
+			<if test="_parameter.containsKey('name')">
+				Name = #{name},
+			</if>
+			<if test="_parameter.containsKey('description')">
+				Description = #{description},
+			</if>
+			<if test="_parameter.containsKey('serial')">
+				Serial = #{serial},
+			</if>
+			<if test="_parameter.containsKey('status')">
+				Status = #{status},
+			</if>
+			<if test="_parameter.containsKey('updatedTime')">
+				UpdatedTime = #{updatedTime},
+			</if>
+		</set>
+		WHERE ( Department_Id = #{departmentId} )
+	</update>
+	
+	<delete id="deleteDepartment" parameterType="map">
+		DELETE FROM uasp_departments 
+		<where>
+			<if test="departmentId != null">
+				AND ( Department_Id = #{departmentId} )
+			</if>
+			<if test="parentId != null">
+				AND ( Parent_Id = #{parentId} )
+			</if>
+			<if test="companyId != null">
+				AND ( Company_Id = #{companyId} )
+			</if>
+			<if test="tenantId != null">
+				AND ( Tenant_Id = #{tenantId} )
+			</if>
+		</where>
+	</delete>
+	
+	<!-- Positions -->
+	
+	<resultMap type="org.kayura.uasp.po.Position" id="positionResultMap">
+		<id property="positionId" column="Position_Id" />
+		<result property="departmentId" column="Department_Id" />
+		<result property="departmentName" column="DepartmentName" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="code" column="code" />
+		<result property="name" column="name" />
+		<result property="level" column="level" />
+		<result property="description" column="description" />
+		<result property="serial" column="serial" />
+		<result property="status" column="status" />
+		<result property="updatedTime" column="updatedTime" />
+	</resultMap>
+	
+	<sql id="positionColumns_Sql">
+		t.Position_Id,
+		t.Department_Id,
+		t.Tenant_Id,
+		t.Code,
+		t.Name,
+		t.Level,
+		t.Description,
+		t.Serial,
+		t.Status,
+		t.UpdatedTime
+	</sql>
+	
+	<select id="findPositions" parameterType="map" resultMap="positionResultMap">
+		SELECT
+			<include refid="positionColumns_Sql" />,
+			d.Name AS DepartmentName
+		FROM uasp_positions AS t
+			LEFT JOIN uasp_departments AS d ON t.Department_Id = d.Department_Id
+		<where>
+			<if test="positionId != null">
+				AND (t.Position_Id = #{positionId} )
+			</if>
+			<if test="departmentId != null">
+				AND (t.Department_Id = #{departmentId} )
+			</if>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status IN ( ${status} ) )
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insertPosition" parameterType="org.kayura.uasp.po.Position">
+		INSERT uasp_positions (
+			Position_Id,
+			Department_Id,
+			Tenant_Id,
+			Code,
+			Name,
+			Level,
+			Description,
+			Serial,
+			Status,
+			UpdatedTime
+		) VALUES (
+			#{positionId},
+			#{departmentId},
+			#{tenantId},
+			#{code},
+			#{name},
+			#{level},
+			#{description},
+			#{serial},
+			#{status},
+			#{updatedTime}
+		)
+	</insert>
+	
+	<update id="updatePosition" parameterType="map">
+		UPDATE uasp_positions
+		<set>
+			<if test="_parameter.containsKey('parentId')">
+				Parent_Id = #{parentId},
+			</if>
+			<if test="_parameter.containsKey('departmentId')">
+				Department_Id = #{departmentId},
+			</if>
+			<if test="_parameter.containsKey('code')">
+				Code = #{code},
+			</if>
+			<if test="_parameter.containsKey('name')">
+				Name = #{name},
+			</if>
+			<if test="_parameter.containsKey('level')">
+				Level = #{level},
+			</if>
+			<if test="_parameter.containsKey('description')">
+				Description = #{description},
+			</if>
+			<if test="_parameter.containsKey('serial')">
+				Serial = #{serial},
+			</if>
+			<if test="_parameter.containsKey('status')">
+				Status = #{status},
+			</if>
+			<if test="_parameter.containsKey('updatedTime')">
+				UpdatedTime = #{updatedTime},
+			</if>
+		</set>
+		WHERE ( Position_Id = #{positionId} )
+	</update>
+	
+	<delete id="deletePosition" parameterType="map">
+		DELETE FROM uasp_positions
+		<where>
+			<if test="positionId != null">
+				AND ( Position_Id = #{positionId} )
+			</if>
+			<if test="departmentId != null">
+				AND ( Department_Id = #{departmentId} )
+			</if>
+			<if test="parentId != null">
+				AND ( Parent_Id = #{parentId} )
+			</if>
+		</where>
+	</delete>
+	
+	<!-- Identity -->
+	
+	<resultMap type="org.kayura.uasp.po.Identity" id="identityResultMap">
+		<id property="identityId" column="Identity_Id" />
+		<result property="companyId" column="Company_Id" />
+		<result property="companyName" column="CompanyName" />
+		<result property="departmentId" column="Department_Id" />
+		<result property="departmentName" column="DepartmentName" />
+		<result property="positionId" column="Position_Id" />
+		<result property="positionName" column="PositionName" />
+		<result property="employeeId" column="Employee_Id" />
+		<result property="employeeName" column="EmployeeName" />
+	</resultMap>
+
+	<resultMap type="org.kayura.uasp.po.Identity" id="identityFullResultMap" extends="identityResultMap">
+		<association property="employee" columnPrefix="Emp_" resultMap="employeeResultMap" />
+	</resultMap>
+	
+	<select id="findIdentities" parameterType="map" resultMap="identityResultMap">
+		SELECT
+			t.Identity_Id,
+			t.Employee_Id,
+			e.Name AS EmployeeName,
+			c.Company_Id,
+			c.FullName AS CompanyName,
+			t.Department_Id,
+			d.Name AS DepartmentName,
+			t.Position_Id,
+			p.Name AS PositionName
+		FROM uasp_identities AS t
+			INNER JOIN uasp_departments AS d ON t.Department_Id = d.Department_Id
+			LEFT JOIN uasp_positions AS p ON t.Position_Id = p.Position_Id
+			INNER JOIN uasp_employees AS e ON t.Employee_Id = e.Employee_Id
+			INNER JOIN uasp_companies AS c ON d.Company_Id = c.Company_Id
+		<where>
+			<if test="identityId != null">
+				AND ( t.Identity_Id = #{identityId} )
+			</if>
+			<if test="employeeId != null">
+				AND ( t.Employee_Id = #{employeeId} )
+			</if>
+			<if test="userId != null">
+				AND ( e.User_Id = #{userId} )
+			</if>
+			<if test="departmentId != null">
+				AND ( t.Department_Id = #{departmentId} )
+			</if>
+			<if test="positionId != null">
+				AND ( t.Position_Id = #{positionId} )
+			</if>
+			<if test="companyId != null">
+				AND ( c.Company_Id = #{companyId} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="getIdentityById" parameterType="string" resultMap="identityFullResultMap">
+		SELECT
+			t.Identity_Id,
+			t.Employee_Id,
+			e.Name AS EmployeeName,
+			c.Company_Id,
+			c.FullName AS CompanyName,
+			t.Department_Id,
+			d.Name AS DepartmentName,
+			t.Position_Id,
+			p.Name AS PositionName,
+			e.Employee_Id AS Emp_Employee_Id,
+			e.Tenant_Id AS Emp_Tenant_Id,
+			e.Code AS Emp_Code,
+			e.Name AS Emp_Name,
+			e.Sex AS Emp_Sex,
+			e.BirthDay AS Emp_BirthDay,
+			e.Phone AS Emp_Phone,
+			e.Mobile AS Emp_Mobile,
+			e.Email AS Emp_Email,
+			e.Status AS Emp_Status,
+			e.UpdatedTime AS Emp_UpdatedTime
+		FROM uasp_identities AS t
+			INNER JOIN uasp_departments AS d ON t.Department_Id = d.Department_Id
+			LEFT JOIN uasp_positions AS p ON t.Position_Id = p.Position_Id
+			INNER JOIN uasp_employees AS e ON t.Employee_Id = e.Employee_Id
+			INNER JOIN uasp_companies AS c ON d.Company_Id = c.Company_Id
+		WHERE ( t.Identity_Id = #{value} )			
+	</select>
+	
+	<insert id="insertIdentity" parameterType="org.kayura.uasp.po.Identity">
+		INSERT uasp_identities (
+			Identity_Id,
+			Employee_Id,
+			Department_Id
+			<if test="positionId != null">
+			,Position_Id
+			</if>
+		) VALUES (
+			#{identityId},
+			#{employeeId},
+			#{departmentId}
+			<if test="positionId != null">
+			,#{positionId}
+			</if>
+		)
+	</insert>
+	
+	<update id="updateIdentity" parameterType="org.kayura.uasp.po.Identity">
+		UPDATE uasp_identities
+		SET	Department_Id = #{departmentId},
+			Position_Id = #{positionId}
+		WHERE Identity_Id = #{identityId}
+	</update>	
+	
+	<delete id="deleteIdentity" parameterType="map">
+		DELETE FROM uasp_identities
+		<where>
+			<if test="identityId != null">
+				AND ( Identity_Id = #{identityId} )
+			</if>
+		</where>
+	</delete>
+	
+	<!-- Employee -->
+
+	<resultMap type="org.kayura.uasp.po.Employee" id="employeeResultMap">
+		<id property="employeeId" column="Employee_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="userId" column="User_Id" />
+		<result property="code" column="Code" />
+		<result property="name" column="Name" />
+		<result property="sex" column="Sex" />
+		<result property="birthDay" column="BirthDay" />
+		<result property="phone" column="Phone" />
+		<result property="mobile" column="Mobile" />
+		<result property="email" column="Email" />
+		<result property="status" column="Status" />
+		<result property="updatedTime" column="UpdatedTime" />
+	</resultMap>
+	
+	<sql id="employeeColumns_Sql">
+		t.Employee_Id,
+		t.Tenant_Id,
+		t.User_Id,
+		t.Code,
+		t.Name,
+		t.Sex,
+		t.BirthDay,
+		t.Phone,
+		t.Mobile,
+		t.Email,
+		t.Status,
+		t.UpdatedTime
+	</sql>
+	
+	<select id="findEmployees" parameterType="map" resultMap="employeeResultMap">
+		SELECT DISTINCT <include refid="employeeColumns_Sql"></include>
+		FROM uasp_employees AS t
+			<if test="departmentId != null or departmentIds != null or positionId != null or positionIds != null">
+				LEFT JOIN uasp_identities AS i ON i.Employee_Id = t.Employee_Id
+				<if test="companyId != null">
+				LEFT JOIN uasp_departments AS d ON i.Department_Id = d.Department_Id
+				</if>
+			</if>
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="sex != null">
+				AND ( t.Sex = #{sex} )
+			</if>
+			<if test="startBirthDay != null">
+				AND ( t.BirthDay &gt;= #{startBirthDay} )
+			</if>
+			<if test="endBirthDay != null">
+				AND ( t.BirthDay &lt; #{endBirthDay} )
+			</if>
+			<if test="keyword != null">
+				AND ( t.Code LIKE #{keyword} OR t.Name LIKE #{keyword} OR t.Phone LIKE #{keyword} OR
+				      t.Mobile LIKE #{keyword} OR t.Email LIKE #{keyword} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status IN ( ${status} ) )
+			</if>
+			<if test="startUpdatedTime != null">
+				AND ( t.UpdatedTime &gt;= #{startUpdatedTime} )
+			</if>
+			<if test="companyId != null">
+				AND ( d.Company_Id = #{companyId} )
+			</if>
+			<if test="departmentId != null">
+				AND ( i.Department_Id = #{departmentId} )
+			</if>
+			<if test="departmentIds != null">
+				AND ( i.Department_Id IN ( 
+				<foreach collection="departmentIds" separator="," item="item"> #{item} </foreach>
+				) )
+			</if>
+			<if test="positionId != null">
+				AND ( i.Position_Id = #{positionId} )
+			</if>
+			<if test="positionIds != null">
+				AND ( i.Position_Id IN ( 
+				<foreach collection="positionIds" separator="," item="item"> #{item} </foreach>
+				) )
+			</if>
+		</where>
+	</select>
+	
+	<select id="getEmployeeById" parameterType="string" resultMap="employeeResultMap">
+		SELECT DISTINCT
+			<include refid="employeeColumns_Sql"></include>
+		FROM uasp_employees t
+		WHERE ( t.Employee_Id = #{value} )
+	</select>
+	
+	<insert id="insertEmployee" parameterType="org.kayura.uasp.po.Employee">
+		INSERT uasp_employees (
+			Employee_Id,
+			Tenant_Id,
+			Code,
+			Name,
+			Sex,
+			BirthDay,
+			Phone,
+			Mobile,
+			Email,
+			Status,
+			UpdatedTime
+		) VALUES ( 
+			#{employeeId},
+			#{tenantId},
+			#{code},
+			#{name},
+			#{sex},
+			#{birthDay},
+			#{phone},
+			#{mobile},
+			#{email},
+			#{status},
+			#{updatedTime}
+		)
+	</insert>
+	
+	<update id="updateEmployee" parameterType="map">
+		UPDATE uasp_employees
+		<set>
+			<if test="_parameter.containsKey('userId')">
+				<choose>
+					<when test="userId != null">
+						User_Id = #{userId},
+					</when>
+					<otherwise>
+						User_Id = NULL,
+					</otherwise>
+				</choose>
+			</if>
+			<if test="code != null">
+				Code = #{code},
+			</if>
+			<if test="name != null">
+				Name = #{name},
+			</if>
+			<if test="sex != null">
+				Sex = #{sex},
+			</if>
+			<if test="_parameter.containsKey('birthDay')">
+				BirthDay = #{birthDay},
+			</if>
+			<if test="_parameter.containsKey('phone')">
+				Phone = #{phone},
+			</if>
+			<if test="_parameter.containsKey('mobile')">
+				Mobile = #{mobile},
+			</if>
+			<if test="_parameter.containsKey('email')">
+				Email = #{email},
+			</if>
+			<if test="status != null">
+				Status = #{status},
+			</if>
+			<if test="updatedTime != null">
+				UpdatedTime = #{updatedTime},
+			</if>
+		</set>
+		WHERE ( Employee_Id = #{employeeId} )
+	</update>
+	
+	<delete id="deleteEmployee" parameterType="map">
+		DELETE FROM uasp_employees 
+		<where>
+			<if test="employeeId != null">
+				AND ( Employee_Id = #{employeeId} )
+			</if>
+			<if test="employeeIds != null">
+				AND ( Employee_Id IN ( 
+				<foreach collection="employeeIds" separator="," item="item"> #{item} </foreach>
+				) )
+			</if>
+		</where>
+	</delete>
+	
+</mapper>

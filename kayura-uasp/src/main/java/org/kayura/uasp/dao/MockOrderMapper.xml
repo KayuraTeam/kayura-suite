@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.uasp.dao.MockOrderMapper">
+
+	<resultMap type="org.kayura.uasp.po.MockOrder" id="mockOrderMap">
+		<id property="orderId" column="Order_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="code" column="Code" />
+		<result property="title" column="Title" />
+		<result property="createTime" column="CreateTime" />
+		<result property="author" column="Author" />
+		<result property="updateTime" column="UpdateTime" />
+	</resultMap>
+	
+	<sql id="mockOrder_Columns">
+		t.Order_Id,
+		t.Tenant_Id,
+		t.Code,
+		t.Title,
+		t.CreateTime,
+		t.Author,
+		t.UpdateTime
+	</sql>
+	
+	<select id="selectMockOrders" parameterType="map" resultMap="mockOrderMap">
+		SELECT	<include refid="mockOrder_Columns" />
+		FROM uasp_mockorders AS t
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="keyword != null">
+				AND ( t.Code LIKE #{keyword} OR t.Title LIKE #{keyword} )
+			</if>
+			<if test="author != null">
+				AND ( t.Author = #{author} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="getMockOrderByMap" parameterType="map" resultMap="mockOrderMap">
+		SELECT <include refid="mockOrder_Columns" />
+		FROM uasp_mockorders AS t
+		<where>
+			<if test="orderId != null">
+				AND ( t.Order_Id = #{orderId} )
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insertMockOrder" parameterType="org.kayura.uasp.po.MockOrder">
+		INSERT uasp_mockorders (
+			Order_Id,
+			Tenant_Id,
+			Code,
+			Title,
+			CreateTime,
+			Author,
+			UpdateTime
+		) VALUES (
+			#{orderId},
+			#{tenantId},
+			#{code},
+			#{title},
+			#{createTime},
+			#{author},
+			#{updateTime}
+		)
+	</insert>
+	
+	<update id="updateMockOrder" parameterType="org.kayura.uasp.po.MockOrder">
+		UPDATE uasp_mockorders
+		SET Code = #{code},
+			Title = #{title},
+			CreateTime = #{createTime},
+			Author = #{author},
+			UpdateTime = #{updateTime}
+		WHERE Order_Id = #{orderId}
+	</update>
+	
+	<delete id="deleteMockOrder" parameterType="string">
+		DELETE FROM uasp_mockorders 
+		WHERE Order_Id = #{value}
+	</delete>
+
+</mapper>

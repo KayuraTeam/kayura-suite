@@ -1,0 +1,87 @@
+.juasp-infotips {
+	background: #A4FFA4;
+	color: #333;
+	border: 1px solid #008000;
+	padding: 6px;
+	padding-left: 25px;
+	font-size: 12px;
+	/* 	box-shadow:3px 3px 3px #C0C0C0; */
+	border-radius: 4px;
+}
+
+.juasp-warntips {
+	background: #FFFFCC;
+	color: #333;
+	border: 1px solid #BBBB00;
+	padding: 6px;
+	padding-left: 25px;
+	font-size: 12px;
+	/* 	box-shadow:3px 3px 3px #C0C0C0; */
+	border-radius: 4px;
+}
+
+.juasp-errortips {
+	background: #FFB0B0;
+	color: #333;
+	border: 1px solid #FF0000;
+	padding: 6px;
+	padding-left: 25px;
+	font-size: 12px;
+	/* 	box-shadow:3px 3px 3px #C0C0C0; */
+	border-radius: 4px;
+}
+
+.juasp-tipsfrom {
+	top: 20px;
+	width: 100%;
+	text-align: center;
+	z-index: 9999;
+	position: absolute;
+}
+
+.juasp-icon {
+	display: inline-block;
+	font-size: 1px;
+	height: 16px;
+	line-height: 16px;
+	margin-top: -7px;
+	margin-left: 6px;
+	position: absolute;
+	top: 50%;
+	width: 16px;
+}
+
+.juasp-theme {
+	cursor: pointer;
+	float: left;
+	width: 20px;
+	height: 20px;
+	margin-right: 10px;
+	border-style: solid;
+	border-width: 1px;
+}
+
+.juasp-icon-info {
+	background: url('../images/icons/info.png') no-repeat center center;
+}
+
+.juasp-icon-warn {
+	background: url('../images/icons/warn.png') no-repeat center center;
+}
+
+.juasp-icon-error {
+	background: url('../images/icons/error.png') no-repeat center center;
+}
+
+.juasp-icon-faceinfo {
+	background: url('../images/icons/face-info.png') no-repeat center center;
+}
+
+.juasp-icon-facewarn {
+	background: url('../images/icons/face-warn.png') no-repeat center center;
+}
+
+.juasp-icon-faceerror {
+	background: url('../images/icons/face-error.png') no-repeat center
+		center;
+}

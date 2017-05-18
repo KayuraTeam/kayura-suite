@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.3//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.uasp.dao.UserMapper">
+
+	<!-- resultMap -->
+
+	<resultMap id="userMap" type="org.kayura.uasp.po.User">
+		<id property="userId" column="User_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="userName" column="UserName" />
+		<result property="displayName" column="DisplayName" />
+		<result property="salt" column="Salt" />
+		<result property="password" column="Password" />
+		<result property="email" column="Email" />
+		<result property="mobileNo" column="MobileNo" />
+		<result property="keyword" column="Keyword" />
+		<result property="createTime" column="CreateTime" />
+		<result property="expireTime" column="ExpireTime" />
+		<result property="roles" column="Roles" />
+		<result property="isEnabled" column="IsEnabled" />
+		<result property="isLocked" column="IsLocked" />
+	</resultMap>
+
+	<resultMap id="autoLoginMap" type="org.kayura.uasp.po.AutoLogin">
+		<result property="seriesId" column="Series_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="userId" column="User_Id" />
+		<result property="userName" column="UserName" />
+		<result property="token" column="Token" />
+		<result property="lastUsed" column="LastUsed" />
+	</resultMap>
+	
+	<!-- Users -->
+	
+	<sql id="userColumns">
+		t.User_Id,
+		t.Tenant_Id,
+		t.UserName,
+		t.DisplayName,
+		t.Salt,
+		t.Password,
+		t.Email,
+		t.MobileNo,
+		t.Keyword,
+		t.CreateTime,
+		t.ExpireTime,
+		t.Roles,
+		t.IsEnabled,
+		t.IsLocked
+	</sql>
+	
+	<select id="findUsersByMap" parameterType="map" resultMap="userMap">
+		SELECT
+		<include refid="userColumns"></include>
+		FROM UASP_Users t
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="keyword != null and keyword != ''">
+				AND ( t.Keyword LIKE #{keyword} )
+			</if>
+			<if test="roles != null">
+				AND ( t.Roles = #{roles} )
+			</if>
+			<if test="isEnabled != null">
+				AND ( t.IsEnabled in ( ${isEnabled} ) )
+			</if>
+			<if test="isLocked != null">
+				AND ( t.IsLocked in ( ${isLocked} ) )
+			</if>
+		</where>
+	</select>
+
+	<sql id="selectOneWhere">
+		<where>
+			<if test="tenantId != null">
+				AND ( t.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="userId != null">
+				AND ( t.User_Id = #{userId} )
+			</if>
+			<if test="userName != null">
+				<if test="tenantId == null">
+					AND ( t.Tenant_Id IS NULL )
+				</if>
+				AND ( t.UserName = #{userName} )
+			</if>
+			<if test="loginName != null">
+				AND ( t.UserName = #{loginName} || t.Email = #{loginName} || t.MobileNo = #{loginName} )
+			</if>
+			<if test="password != null">
+				AND ( t.Password = #{password} )
+			</if>
+			<if test="status != null">
+				AND ( t.Status in ( ${status} ) )
+			</if>
+			<if test="isEnabled != null">
+				AND ( t.IsEnabled in ( ${isEnabled} ) )
+			</if>
+			<if test="isLocked != null">
+				AND ( t.IsLocked in ( ${isLocked} ) )
+			</if>
+		</where>
+	</sql>
+
+	<select id="getUserByMap" parameterType="map" resultMap="userMap">
+		SELECT
+		<include refid="userColumns" />
+		FROM UASP_Users t
+		<include refid="selectOneWhere" />
+		ORDER BY t.CreateTime
+		LIMIT 1
+	</select>
+
+	<select id="isExistsByMap" parameterType="map" resultType="boolean">
+		SELECT COUNT(1) > 0 
+		FROM UASP_Users t
+		<include refid="selectOneWhere" />
+	</select>
+
+	<insert id="insertUser" parameterType="org.kayura.uasp.po.User">
+		INSERT INTO UASP_Users (
+			User_Id,
+			Tenant_Id,
+			UserName,
+			DisplayName,
+			Salt,
+			Password,
+			Email,
+			MobileNo,
+			Keyword,
+			CreateTime,
+			ExpireTime,
+			Roles,
+			IsEnabled,
+			IsLocked
+		) VALUES (
+			#{userId},
+			#{tenantId},
+			#{userName},
+			#{displayName},
+			#{salt},
+			#{password},
+			#{email},
+			#{mobileNo},
+			#{keyword},
+			#{createTime},
+			#{expireTime},
+			#{roles},
+			#{isEnabled},
+			#{isLocked}
+		)
+	</insert>
+
+	<update id="updateUserInfo" parameterType="org.kayura.uasp.po.User">
+		UPDATE UASP_Users
+		SET DisplayName = #{displayName},
+			Email = #{email},
+			MobileNo = #{mobileNo},
+			Keyword = #{keyword},
+			ExpireTime = #{expireTime},
+			Roles = #{roles},
+			IsEnabled = #{isEnabled},
+			IsLocked = #{isLocked}
+		WHERE User_Id = #{userId}
+	</update>
+	
+	<update id="changePassword" parameterType="map">
+		UPDATE UASP_Users
+		SET Password = #{password}
+		WHERE User_Id = #{userId}
+	</update>
+
+	<delete id="deleteUser" parameterType="string">
+		DELETE UASP_Users
+		WHERE User_Id = #{value}
+	</delete>
+
+	<!-- AutoLogin -->
+
+	<insert id="createLoginToken" parameterType="org.kayura.uasp.po.AutoLogin">
+		INSERT INTO UASP_AutoLogins (
+			Series_Id,
+			User_Id,
+			Token,
+			LastUsed
+		) VALUES (
+			#{seriesId},
+			#{userId},
+			#{token},
+			#{lastUsed}
+		)
+	</insert>
+
+	<!-- String seriesId, String token, Date lastUsed -->
+	<update id="updateLoginToken" parameterType="map">
+		UPDATE UASP_AutoLogins
+		SET Token = #{token},
+			LastUsed = #{lastUsed}
+		WHERE Series_Id = #{seriesId}
+	</update>
+	
+	<select id="getLoginTokenById" parameterType="string" resultMap="autoLoginMap">
+		SELECT t.Series_Id, u.Tenant_Id, t.User_Id, u.UserName, t.Token, t.LastUsed
+		FROM UASP_AutoLogins t join UASP_Users u ON t.User_Id = u.User_Id
+		WHERE t.Series_Id = #{seriesId}
+	</select>
+	
+	<delete id="removeLoginTokensByUser" parameterType="string">
+		DELETE FROM UASP_AutoLogins
+		WHERE User_Id = #{userId}
+	</delete>
+	
+</mapper>

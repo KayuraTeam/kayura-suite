@@ -1,0 +1,214 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.3//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.uasp.dao.AuthorityMapper">
+
+	<!-- Menu SchemeMap -->
+	
+	<resultMap id="menuSchemeMap" type="org.kayura.uasp.po.MenuScheme">
+		<id property="id" column="MenuScheme_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="code" column="Code" />
+		<result property="name" column="Name" />
+	</resultMap>
+
+	<resultMap type="org.kayura.uasp.po.MenuItem" id="menuItemMap">
+		<id property="menuItemId" column="MenuItem_Id" />
+		<result property="parentId" column="Parent_Id" />
+		<result property="menuSchemeId" column="MenuScheme_Id" />
+		<result property="type" column="Type" />
+		<result property="displayName" column="DisplayName" />
+		<result property="description" column="Description" />
+		<result property="icon" column="Icon" />
+		<result property="serial" column="Serial" />
+		<result property="enabled" column="Enabled" />
+	</resultMap>
+	
+	<sql id="menuScheme_Columns">
+		t.MenuScheme_Id, t.Tenant_Id, t.Code, t.Name
+	</sql>
+
+	<select id="findMenuSchemes" parameterType="map" resultMap="menuSchemeMap">
+		SELECT 
+		<include refid="menuScheme_Columns"></include>
+		FROM UASP_MenuSchemes t
+		<where>
+			<if test="keyword != null">
+				and ( ( t.Code like #{keyword} ) OR ( t.Name like #{keyword} ) )
+			</if>
+		</where>
+	</select>
+	
+	<select id="getMenuSchemeByMap" parameterType="string" resultMap="menuSchemeMap">
+		SELECT 
+		<include refid="menuScheme_Columns"></include>
+		FROM UASP_MenuSchemes t
+		<where>
+			<if test="menuSchemeId != null">
+				and ( t.MenuScheme_Id = #{menuSchemeId} )
+			</if>
+			<if test="code != null">
+				and ( t.Code = #{code} )
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insertMenuScheme" parameterType="org.kayura.uasp.po.MenuScheme">
+		INSERT UASP_MenuSchemes ( 
+			MenuScheme_Id, 
+			Tenant_Id, 
+			Code, 
+			Name 
+		) Values ( 
+			#{id}, 
+			#{tenantId}, 
+			#{code}, 
+			#{name} 
+		) 
+	</insert>
+	
+	<select id="updateMenuScheme" parameterType="org.kayura.uasp.po.MenuScheme">
+		UPDATE UASP_MenuSchemes
+		SET	Code = #{code}, 
+			Name = #{name}
+		WHERE MenuScheme_Id = #{id}
+	</select>
+
+	<delete id="deleteMenuSchemes" parameterType="list">
+		DELETE FROM UASP_MenuSchemes
+		WHERE MenuScheme_Id IN
+		<foreach collection="list" item="item" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+	<!-- MenuItem -->
+	
+	<sql id="menuItem_Columns">
+		t.MenuItem_Id,
+		t.Parent_Id,
+		t.MenuPlan_Id,
+		t.Module_Id,
+		t.Type,
+		t.DisplayName,
+		t.Description,
+		t.Icon,
+		t.Serial,
+		t.Enabled
+	</sql>
+
+	<select id="findMenuItems" parameterType="map" resultMap="menuItemMap">
+		SELECT 
+		<include refid="menuItem_Columns"></include>
+		FROM UASP_MenuItems t
+		<where>
+			<if test="keyword != null">
+				and ( ( t.DisplayName like #{keyword} ) OR ( t.Description like #{keyword} ) )
+			</if>
+			<if test="enabled != null">
+				and ( t.Enabled = #{enabled} )
+			</if>
+			<if test="parentId != null">
+				and ( t.Parent_Id = #{parentId} )
+			</if>
+			<if test="menuPlanId != null">
+				and ( t.MenuPlan_Id != #{menuPlanId} )
+			</if>
+		</where>
+		ORDER BY t.Serial
+	</select>
+
+	<select id="getMenuItemByMap" parameterType="string" resultMap="menuItemMap">
+		SELECT 
+		<include refid="menuItem_Columns"></include>
+		FROM UASP_MenuItems t
+		<where>
+			<if test="menuItemId != null">
+				and ( t.MenuItem_Id = #{menuItemId} )
+			</if>
+			<if test="keyword != null">
+				and ( ( t.DisplayName like #{keyword} ) OR ( t.Description like #{keyword} ) )
+			</if>
+		</where>
+	</select>
+
+	<!-- Role -->
+
+	<resultMap type="org.kayura.uasp.po.Role" id="roleResultMap">
+		<id property="roleId" column="Role_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="name" column="Name" />
+		<result property="enabled" column="Enabled" />
+	</resultMap>
+
+	<sql id="roleColumns_Sql">
+		t.Role_Id,
+		t.Tenant_Id,
+		t.Name,
+		t.Enabled
+	</sql>
+	
+	<select id="findRoles" parameterType="map" resultMap="roleResultMap">
+		SELECT <include refid="roleColumns_Sql"></include>
+		FROM uasp_roles AS t
+		<where>
+			<if test="_parameter.containsKey('tenantId')">
+				<choose>
+					<when test="tenantId != null">
+						AND (t.Tenant_Id = #{tenantId} )
+					</when>
+					<otherwise>
+						AND (t.Tenant_Id IS NULL )
+					</otherwise>
+				</choose>
+			</if>
+			<if test="_parameter.containsKey('keyword')">
+				AND ( t.Name LIKE #{keyword} )
+			</if>
+			<if test="_parameter.containsKey('enabled')">
+				AND ( t.Enabled = #{enabled} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="getRoleById" parameterType="string" resultMap="roleResultMap">
+		SELECT <include refid="roleColumns_Sql"></include>
+		FROM uasp_roles AS t
+		WHERE ( t.Role_Id = #{value} )
+	</select>
+	
+	<insert id="insertRole" parameterType="org.kayura.uasp.po.Role">
+		INSERT uasp_roles (
+			Role_Id,
+			Tenant_Id,
+			Name,
+			Enabled
+		) VALUES ( 
+			#{roleId},
+			#{tenantId},
+			#{name},
+			#{enabled}
+		 )
+	</insert>
+
+	<update id="updateRole" parameterType="org.kayura.uasp.po.Role">
+		UPDATE uasp_roles
+		SET Name = #{name},
+			Enabled = #{enabled}
+		WHERE ( Role_Id = #{roleId} )
+	</update>
+	
+	<delete id="deleteRole" parameterType="string">
+		DELETE FROM uasp_roles
+		WHERE ( Role_Id = #{roleId} )
+	</delete>
+	
+	<delete id="deleteRoles" parameterType="list">
+		DELETE FROM uasp_roles
+		WHERE Role_Id IN
+		<foreach collection="list" item="item" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</delete>
+	
+
+</mapper>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd">
+
+	<!-- 定义不需要过滤的请求路径,定义在这里可以跳过所有过滤器 -->
+	<http pattern="/res/**" security="none" />
+	<http pattern="/editor-app/**" security="none" />
+	<http pattern="/error/**" security="none" />
+	<http pattern="/example/**" security="none" />
+
+	<!-- 配置访问限制规则 -->
+	<http entry-point-ref="loginEntryPoint">
+		
+ 		<intercept-url pattern="/login" access="permitAll" />
+	
+		<!-- 定义需要授权访问的请求路径 -->
+		<intercept-url pattern="/admin/**" access="hasRole('ADMIN') or hasRole('ROOT')" />
+		<intercept-url pattern="/**" access="hasRole('USER')" />
+
+		<!-- 防止跨站请求伪造攻击 -->
+		<csrf disabled="true"/>
+		<headers>
+			<frame-options policy="SAMEORIGIN" />
+		</headers>
+		
+		<!-- 用户登出配置 -->
+		<logout logout-url="/logout" logout-success-url="/login?t=logout" />
+		<!-- 自动登录配置 -->
+ 		<remember-me key="${rememberme.key}" services-ref="rememberMeServices" 
+ 			authentication-success-handler-ref="loginSuccessHandler" />
+ 			
+		<!-- 拒绝访问时的处理配置 -->
+		<access-denied-handler error-page="/error/403" />
+		<!-- 用户会话配置 -->
+		<session-management invalid-session-url="/login?t=session" session-authentication-strategy-ref="sas" />
+
+		<!-- 自定义过滤器: 验证码安全过滤器. -->
+		<custom-filter ref="captchaAuthenticationFilter" before="FORM_LOGIN_FILTER"/>
+		<custom-filter ref="privilegeFilter" after="FORM_LOGIN_FILTER"/>
+		<!-- 自定义用户验证过滤器,替代了原默认的过滤器：增加对租户的处理 -->
+		<custom-filter ref="customLoginFilter" position="FORM_LOGIN_FILTER" />
+		<!-- Session 管理过滤器 -->
+		<custom-filter ref="concurrencyFilter" position="CONCURRENT_SESSION_FILTER" />
+		
+	</http>
+
+	<!-- 使用了默认的登录入口,用于设置登录页地址 -->
+	<beans:bean id="loginEntryPoint"
+		class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+		<beans:constructor-arg value="/login" />
+	</beans:bean>
+	
+	<!-- 用于Session并发控制的过滤器 -->
+	<beans:bean id="concurrencyFilter" class="org.springframework.security.web.session.ConcurrentSessionFilter">
+		<beans:constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+		<beans:constructor-arg name="expiredUrl" value="/login?t=expired" />
+	</beans:bean>
+	
+	<!-- 用户功能操作权限验证过滤器 -->
+	<beans:bean id="privilegeFilter" class="org.kayura.uasp.security.PrivilegeAuthenticationFilter">
+		<beans:property name="authenticationFailureHandler">
+			<beans:bean
+				class="org.kayura.uasp.security.ExceptionMappingExAuthenticationFailureHandler">
+				<beans:property name="exceptionMappings">
+					<beans:map key-type="java.lang.String" value-type="java.lang.String">
+						<beans:entry 
+							key="org.kayura.uasp.security.NonePrivilegeException" 
+							value="/error/403">
+						</beans:entry>
+						<beans:entry 
+							key="org.kayura.uasp.security.AjaxNonePrivilegeException" 
+							value="/error/403.json">
+						</beans:entry>
+					</beans:map>
+				</beans:property>
+			</beans:bean>
+		</beans:property>
+	</beans:bean>
+	
+	<!-- 自定义的租户账号密码验证过滤器定义 -->
+	<beans:bean id="customLoginFilter" class="org.kayura.uasp.security.TenantUserPasswordLoginFilter">
+		<beans:property name="sessionAuthenticationStrategy" ref="sas" />
+		<beans:property name="usernameParameter" value="u" />
+		<beans:property name="passwordParameter" value="p" />
+		<beans:property name="authenticationManager" ref="authenticationManager" />
+		<beans:property name="rememberMeServices" ref="rememberMeServices" />
+		<beans:property name="authenticationFailureHandler">
+			<beans:bean
+				class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+				<beans:property name="defaultFailureUrl" value="/login?t=failure" />
+			</beans:bean>
+		</beans:property>
+		<beans:property name="authenticationSuccessHandler" ref="loginSuccessHandler" />
+	</beans:bean>
+	
+	<beans:bean id="loginSuccessHandler" class="org.kayura.uasp.security.LoadUserInfoAuthenticationSuccessHandler">
+		<beans:property name="userService" ref="userServiceImpl" />
+	</beans:bean>
+	
+	<beans:bean id="sas" class="org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy">
+		<beans:constructor-arg>
+			<beans:list>
+				<beans:bean class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy">
+					<beans:constructor-arg ref="sessionRegistry"/>
+					<beans:property name="maximumSessions" value="1" />
+					<beans:property name="exceptionIfMaximumExceeded" value="false" />
+				</beans:bean>
+				<beans:bean class="org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy">
+				</beans:bean>
+				<beans:bean class="org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy">
+					<beans:constructor-arg ref="sessionRegistry"/>
+				</beans:bean>
+			</beans:list>
+		</beans:constructor-arg>
+	</beans:bean>
+	<beans:bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+	
+	<!-- 使用数据库记录登录 Cookie 信息，随机产生密钥. -->
+  	<beans:bean id="rememberMeServices" class="org.kayura.security.PersistentRememberMeServices">
+ 		<beans:constructor-arg name="key" value="${rememberme.key}" />
+ 		<beans:constructor-arg name="userDetailsService" ref="userDetailServiceImpl" />
+ 		<beans:constructor-arg name="tokenRepository" ref="tokenRepositoryImpl" />
+ 		<beans:property name="parameter" value="rme" />
+		<beans:property name="cookieName" value="KYLALID" />
+		<beans:property name="seriesLength" value="16" />
+		<beans:property name="tokenLength" value="32" />
+	</beans:bean>
+ 	<beans:bean id="tokenRepositoryImpl" class="org.kayura.uasp.security.RememberMeTokenRepositoryImpl">
+		<beans:property name="userService" ref="userServiceImpl" />
+	</beans:bean>
+	
+	<!-- 使用浏览器 Cookie 记录登录用户信息（用户名，时间戳，密码，密钥）MD5 加密. -->
+<!--   	<beans:bean id="rememberMeServices" 
+ 		class="org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices">
+ 		<beans:constructor-arg name="key" value="${rememberme.key}" />
+ 		<beans:constructor-arg name="userDetailsService" ref="userDetailServiceImpl" />
+ 		<beans:property name="parameter" value="rme" />
+		<beans:property name="cookieName" value="KAYURAID" />
+	</beans:bean> -->
+	
+	<!-- 注册验证码过滤器 -->
+ 	<beans:bean id="captchaAuthenticationFilter" class="org.kayura.security.CaptchaAuthenticationFilter">
+		<beans:property name="captchaFieldName" value="vcode"/>
+		<beans:property name="authenticationFailureHandler">
+			<beans:bean class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+				<beans:property name="defaultFailureUrl" value="/login?t=captcha"/>
+			</beans:bean>
+		</beans:property>
+	</beans:bean>
+	
+	<!-- 注册认证管理器实例 -->
+	<authentication-manager alias="authenticationManager">
+		<authentication-provider user-service-ref="userDetailServiceImpl">
+			<password-encoder ref="passwordEncoder">
+				<salt-source ref="saltSource"/>
+			</password-encoder>
+		</authentication-provider>
+	</authentication-manager>
+	<beans:bean id="userDetailServiceImpl" class="org.kayura.uasp.security.UserDetailServiceImpl">
+		<beans:property name="userService" ref="userServiceImpl" />
+	</beans:bean>
+ 	<beans:bean id="passwordEncoder" class="org.springframework.security.authentication.encoding.ShaPasswordEncoder">
+		<beans:constructor-arg name="strength" value="256"/>
+	</beans:bean>
+	<beans:bean id="saltSource" class="org.springframework.security.authentication.dao.ReflectionSaltSource">
+		<beans:property name="userPropertyToUse" value="salt" />
+	</beans:bean>
+	
+</beans:beans>

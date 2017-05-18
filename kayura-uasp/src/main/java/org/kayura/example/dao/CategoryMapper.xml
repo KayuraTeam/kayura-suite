@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.CategoryMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.Category">
+		<id column="CategoryID" property="id" />
+		<result column="CategoryName" property="name" />
+		<result column="Description" property="description" />
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		CategoryID, CategoryName, Description
+	</sql>
+	
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="int">
+		select
+			<include refid="Base_Column_List" />
+		from example_categories
+		where CategoryID = #{id}
+	</select>
+	
+	<delete id="deleteByKey" parameterType="int">
+		delete from example_categories
+		where CategoryID = #{id}
+	</delete>
+	 
+	<insert id="insert" parameterType="org.kayura.example.po.Category">
+		insert into example_categories (
+			CategoryID, 
+			CategoryName, 
+			Description
+		) values (
+			#{id},
+			#{name},
+			#{description}
+		)
+	</insert>
+	
+	<insert id="insertSelective" parameterType="org.kayura.example.po.Category">
+		insert into example_categories
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				CategoryName,
+			</if>
+			<if test="description != null">
+				Description,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				#{name},
+			</if>
+			<if test="description != null">
+				#{description},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.Category">
+		update example_categories
+		<set>
+			<if test="name != null">
+				CategoryName = #{name},
+			</if>
+			<if test="description != null">
+				Description = #{description},
+			</if>
+		</set>
+		where CategoryID = #{id}
+	</update>
+	
+	<update id="updateByKey" parameterType="org.kayura.example.po.Category">
+		update example_categories
+		set CategoryName = #{name},
+			Description = #{description}
+		where CategoryID = #{id}
+	</update>
+	
+</mapper>

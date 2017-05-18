@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.OrderMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.Order">
+		<id column="OrderID" property="id" />
+		<result column="OrderDate" property="orderDate" />
+		<result column="RequiredDate" property="requiredDate"  />
+		<result column="ShippedDate" property="shippedDate" />
+		<result column="Freight" property="freight" />
+		<result column="ShipName" property="shipName" />
+		<result column="ShipAddress" property="shipAddress" />
+		<result column="ShipCity" property="shipCity" />
+		<result column="ShipRegion" property="shipRegion" />
+		<result column="ShipPostalCode" property="shipPostalCode" />
+		<result column="ShipCountry" property="shipCountry" />
+		<association property="customer" javaType="org.kayura.example.po.Customer">
+			<id column="CustomerID" property="id"/>
+			<result column="CustomerName" property="name" />
+		</association>
+		<association property="employee" javaType="org.kayura.example.po.Employee">
+			<id column="EmployeeID" property="id"/>
+			<result column="EmployeeLastName" property="lastName" />
+			<result column="EmployeeFirstName" property="firstName" />
+		</association>
+		<association property="shipVia" javaType="org.kayura.example.po.Supplier">
+			<id column="ShipVia" property="id"/>
+			<result column="ShipViaName" property="name" />
+		</association>
+	</resultMap>
+
+	<sql id="Base_Column_List">
+		t.OrderID, t.CustomerID, t.EmployeeID, t.OrderDate, t.RequiredDate,
+		t.ShippedDate, t.ShipVia, t.Freight,
+		t.ShipName, t.ShipAddress, t.ShipCity,
+		t.ShipRegion, t.ShipPostalCode, t.ShipCountry
+	</sql>
+
+	<select id="getById" resultMap="BaseResultMap" parameterType="int">
+		select
+			<include refid="Base_Column_List" /> ,
+			e.LastName AS EmployeeLastName,
+			e.FirstName AS EmployeeFirstName,
+			c.CompanyName AS CustomerName,
+			s.CompanyName AS ShipViaName
+		from example_orders AS t
+			INNER JOIN example_customers AS c ON t.CustomerID = c.CustomerID
+			INNER JOIN example_employees AS e ON t.EmployeeID = e.EmployeeID
+			INNER JOIN example_shippers AS s ON t.ShipVia = s.ShipperID
+		where t.OrderID = #{id}
+	</select>
+	
+	<select id="findByMap" resultMap="BaseResultMap" parameterType="map">
+		select
+			<include refid="Base_Column_List" />,
+			e.LastName AS EmployeeLastName,
+			e.FirstName AS EmployeeFirstName,
+			c.CompanyName AS CustomerName,
+			s.CompanyName AS ShipViaName
+		from example_orders  AS t
+			INNER JOIN example_customers AS c ON t.CustomerID = c.CustomerID
+			INNER JOIN example_employees AS e ON t.EmployeeID = e.EmployeeID
+			INNER JOIN example_shippers AS s ON t.ShipVia = s.ShipperID
+		<where>
+			<if test="id != null">
+				AND t.OrderID = #{id}
+			</if>
+			<if test="beginTime != null">
+				<![CDATA[ AND t.OrderDate >= #{beginTime} ]]>
+			</if>
+			<if test="endTime != null">
+				<![CDATA[ AND t.OrderDate < #{endTime} ]]>
+			</if>
+			<if test="keyword != null">
+				AND (
+					  t.ShipName LIKE #{keyword} OR t.ShipCity LIKE #{keyword} OR 
+					  t.ShipRegion LIKE #{keyword} OR t.ShipPostalCode LIKE #{keyword} OR 
+					  t.ShipCountry LIKE #{keyword} OR 
+					  e.LastName LIKE #{keyword} OR e.FirstName LIKE #{keyword} OR 
+					  c.CompanyName LIKE #{keyword} OR s.CompanyName LIKE #{keyword}
+					)
+			</if>
+		</where>
+	</select>
+	
+	<delete id="deleteByKey" parameterType="int">
+		delete from example_orders
+		where OrderID = #{id}
+	</delete>
+	
+	<insert id="insert" parameterType="org.kayura.example.po.Order">
+		insert into example_orders (
+			CustomerID, 
+			EmployeeID, 
+			OrderDate, 
+			RequiredDate, 
+			ShippedDate, 
+			ShipVia, 
+			Freight, 
+			ShipName, 
+			ShipAddress, 
+			ShipCity, 
+			ShipRegion, 
+			ShipPostalCode, 
+			ShipCountry
+		) values (
+			#{customer.id},
+			#{employee.id},
+			#{orderDate}, 
+			#{requiredDate}, 
+			#{shippedDate}, 
+			#{shipVia.id},
+			#{freight}, 
+			#{shipName},
+			#{shipAddress}, 
+			#{shipCity},
+			#{shipRegion},
+			#{shipPostalCode},
+			#{shipCountry}
+		)
+	</insert>
+	
+	<insert id="insertSelective" parameterType="org.kayura.example.po.Order">
+		insert into example_orders
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="customer != null">
+				CustomerID,
+			</if>
+			<if test="employee != null">
+				EmployeeID,
+			</if>
+			<if test="orderDate != null">
+				OrderDate,
+			</if>
+			<if test="requiredDate != null">
+				RequiredDate,
+			</if>
+			<if test="shippedDate != null">
+				ShippedDate,
+			</if>
+			<if test="shipVia != null">
+				ShipVia,
+			</if>
+			<if test="freight != null">
+				Freight,
+			</if>
+			<if test="shipName != null">
+				ShipName,
+			</if>
+			<if test="shipAddress != null">
+				ShipAddress,
+			</if>
+			<if test="shipCity != null">
+				ShipCity,
+			</if>
+			<if test="shipRegion != null">
+				ShipRegion,
+			</if>
+			<if test="shipPostalCode != null">
+				ShipPostalCode,
+			</if>
+			<if test="shipCountry != null">
+				ShipCountry,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="customer != null">
+				#{customer.id},
+			</if>
+			<if test="employee != null">
+				#{employee.id},
+			</if>
+			<if test="orderDate != null">
+				#{orderDate},
+			</if>
+			<if test="requiredDate != null">
+				#{requiredDate},
+			</if>
+			<if test="shippedDate != null">
+				#{shippedDate},
+			</if>
+			<if test="shipVia != null">
+				#{shipVia.id},
+			</if>
+			<if test="freight != null">
+				#{freight},
+			</if>
+			<if test="shipName != null">
+				#{shipName},
+			</if>
+			<if test="shipAddress != null">
+				#{shipAddress},
+			</if>
+			<if test="shipCity != null">
+				#{shipCity},
+			</if>
+			<if test="shipRegion != null">
+				#{shipRegion},
+			</if>
+			<if test="shipPostalCode != null">
+				#{shipPostalCode},
+			</if>
+			<if test="shipCountry != null">
+				#{shipCountry},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.Order">
+		update example_orders
+		<set>
+			<if test="customer != null">
+				CustomerID = #{customer.id},
+			</if>
+			<if test="employee != null">
+				EmployeeID = #{employee.id},
+			</if>
+			<if test="orderDate != null">
+				OrderDate = #{orderDate},
+			</if>
+			<if test="requiredDate != null">
+				RequiredDate = #{requiredDate},
+			</if>
+			<if test="shippedDate != null">
+				ShippedDate = #{shippedDate},
+			</if>
+			<if test="shipVia != null">
+				ShipVia = #{shipVia.id},
+			</if>
+			<if test="freight != null">
+				Freight = #{freight},
+			</if>
+			<if test="shipName != null">
+				ShipName = #{shipName},
+			</if>
+			<if test="shipAddress != null">
+				ShipAddress = #{shipAddress},
+			</if>
+			<if test="shipCity != null">
+				ShipCity = #{shipCity},
+			</if>
+			<if test="shipRegion != null">
+				ShipRegion = #{shipRegion},
+			</if>
+			<if test="shipPostalCode != null">
+				ShipPostalCode = #{shipPostalCode},
+			</if>
+			<if test="shipCountry != null">
+				ShipCountry = #{shipCountry},
+			</if>
+		</set>
+		where OrderID = #{id}
+	</update>
+	
+	<update id="updateByKey" parameterType="org.kayura.example.po.Order">
+		update example_orders
+		set CustomerID = #{customer.id},
+			EmployeeID = #{employee.id},
+			OrderDate = #{orderDate},
+			RequiredDate = #{requiredDate},
+			ShippedDate = #{shippedDate},
+			ShipVia = #{shipVia.id},
+			Freight = #{freight},
+			ShipName = #{shipName},
+			ShipAddress = #{shipAddress},
+			ShipCity = #{shipCity},
+			ShipRegion = #{shipRegion},
+			ShipPostalCode = #{shipPostalCode},
+			ShipCountry = #{shipCountry}
+		where OrderID = #{id}
+	</update>
+	
+</mapper>

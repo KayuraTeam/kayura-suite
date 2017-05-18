@@ -1,0 +1,580 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.3//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.uasp.dao.FileMapper">
+
+	<!-- 文件存储关系持久化 -->
+
+	<resultMap id="fileInfoMap" type="org.kayura.uasp.po.FileInfo">
+		<id property="fileId" column="File_Id" />
+		<result property="fileSize" column="FileSize" />
+		<result property="contentType" column="ContentType" />
+		<result property="logicPath" column="LogicPath" />
+		<result property="md5" column="MD5" />
+		<result property="allowChange" column="AllowChange" />
+		<result property="isEncrypted" column="IsEncrypted" />
+		<result property="salt" column="Salt" />
+	</resultMap>
+
+	<resultMap id="fileRelationMap" type="org.kayura.uasp.po.FileRelation">
+		<id property="frId" column="Fr_Id" />
+		<result property="fileId" column="File_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="bizId" column="BizId" />
+		<result property="category" column="Category" />
+		<result property="fileName" column="FileName" />
+		<result property="postfix" column="Postfix" />
+		<result property="uploaderId" column="UploaderId" />
+		<result property="uploaderName" column="UploaderName" />
+		<result property="uploadTime" column="UploadTime" />
+		<result property="downloads" column="Downloads" />
+		<result property="serial" column="Serial" />
+		<result property="tags" column="Tags" />
+	</resultMap>
+
+	<resultMap id="fileFolderMap" type="org.kayura.uasp.po.FileFolder">
+		<id property="folderId" column="Folder_Id" />
+		<result property="tenantId" column="Tenant_Id" />
+		<result property="parentId" column="Parent_Id" />
+		<result property="creatorId" column="Creator_Id" />
+		<result property="groupId" column="Group_Id" />
+		<result property="groupName" column="GroupName" />
+		<result property="name" column="Name" />
+		<result property="hidden" column="Hidden" />
+	</resultMap>
+
+	<resultMap type="org.kayura.uasp.po.FileShare" id="fileShareMap">
+		<id property="fileShareId" column="FileShare_Id" />
+		<result property="sharerId" column="Sharer_Id" />
+		<result property="sharerName" column="SharerName" />
+		<result property="receiverId" column="Receiver_Id" />
+		<result property="receiverName" column="ReceiverName" />
+		<result property="folderId" column="Folder_Id" />
+		<result property="folderName" column="FolderName" />
+		<result property="frId" column="Fr_Id" />
+		<result property="fileName" column="FileName" />
+		<result property="createTime" column="CreateTime" />
+	</resultMap>
+	
+	<!-- FileInfo -->
+
+	<insert id="insertFileInfo" parameterType="org.kayura.uasp.po.FileInfo">
+		INSERT UASP_FileInfos (
+			File_Id,
+			FileSize,
+			ContentType,
+			LogicPath,
+			MD5,
+			AllowChange,
+			IsEncrypted,
+			Salt
+		) VALUES(
+			#{fileId},
+			#{fileSize},
+			#{contentType},
+			#{logicPath},
+			#{md5},
+			#{allowChange},
+			#{isEncrypted},
+			#{salt}
+		)		
+	</insert>
+	
+	<update id="updateFileInfo" parameterType="map">
+		UPDATE UASP_FileInfos 
+		<set>
+			<if test="fileSize != null">
+				FileSize = #{fileSize},
+			</if>
+			<if test="contentType != null">
+				ContentType = #{contentType},
+			</if>
+			<if test="md5 != null">
+				MD5 = #{md5},
+			</if>
+			<if test="allowChange != null">
+				AllowChange = #{allowChange},
+			</if>
+		</set>
+		WHERE ( File_Id = #{fileId} )
+	</update>
+
+	<select id="getFileInfoById" parameterType="string" resultMap="fileInfoMap">
+		SELECT
+			t.File_Id,
+			t.FileSize,
+			t.ContentType,
+			t.LogicPath,
+			t.MD5,
+			t.AllowChange,
+			t.IsEncrypted,
+			t.Salt
+		FROM UASP_FileInfos t
+		WHERE ( t.File_Id = #{value} )
+	</select>
+	
+	<select id="getFileInfoKeyByMd5" parameterType="string" resultType="string">
+		SELECT t.File_Id FROM UASP_FileInfos t
+		WHERE ( t.MD5 = #{value} ) 
+	</select>
+
+	<select id="fileInfoExistsByMap" parameterType="map" resultType="boolean">
+		SELECT COUNT(1) > 0 FROM UASP_FileInfos t
+		<where>
+			<if test="fileId != null">
+				AND ( t.File_Id = #{fileId} )
+			</if>
+			<if test="md5 != null">
+				AND ( t.MD5 = #{md5} )
+			</if>
+		</where>
+	</select>
+	
+	<!-- FileRelation -->
+
+	<insert id="insertFileRelation" parameterType="org.kayura.uasp.po.FileRelation">
+		INSERT UASP_FileRelations (
+			Fr_Id,
+			File_Id,
+			Tenant_Id,
+			Folder_Id,
+			BizId,
+			Category,
+			FileName,
+			Postfix,
+			UploaderId,
+			UploadTime,
+			Serial,
+			Tags
+		) VALUES (
+			#{frId},
+			#{fileId},
+			#{tenantId},
+			#{folderId},
+			#{bizId},
+			#{category},
+			#{fileName},
+			#{postfix},
+			#{uploaderId},
+			#{uploadTime},
+			#{serial},
+			#{tags}
+		)			
+	</insert>
+	
+	<insert id="copyToFolder" parameterType="map">
+		INSERT UASP_FileRelations (
+			Fr_Id,
+			File_Id,
+			Tenant_Id,
+			Folder_Id,
+			BizId,
+			Category,
+			FileName,
+			Postfix,
+			UploaderId,
+			UploadTime,
+			Downloads,
+			Serial,
+			Tags
+		)
+		SELECT
+			newid() Fr_Id,
+			t.File_Id,
+			t.Tenant_Id,
+			<choose>
+			<when test="folderId == null">NULL,</when>
+			<otherwise>#{folderId},</otherwise>
+			</choose>
+			NULL,
+			t.Category,
+			t.FileName,
+			t.Postfix,
+			#{uploaderId},
+			#{uploadTime},
+			0,
+			t.Serial,
+			t.Tags
+		FROM uasp_filerelations AS t
+		WHERE t.Fr_Id IN 
+		<foreach item="item" collection="frIds" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</insert>
+	
+	<update id="updateFileRelation" parameterType="map">
+		UPDATE UASP_FileRelations 
+		<set>
+			<if test="category != null">
+				Category = #{category},
+			</if>
+			<if test="fileName != null">
+				FileName = #{fileName},
+			</if>
+			<if test="folderId != null">
+				<choose>
+					<when test="folderId == 'NULL'">
+						Folder_Id = NULL,
+					</when>
+					<otherwise>
+						Folder_Id = #{folderId},
+					</otherwise>
+				</choose>
+			</if>
+			<if test="postfix != null">
+				Postfix = #{postfix},
+			</if>
+			<if test="uploadTime != null">
+				UploadTime = #{uploadTime},
+			</if>
+			<if test="serial != null">
+				Serial = #{serial},
+			</if>
+			<if test="tags != null">
+				Tags = #{tags},
+			</if>
+		</set>
+		<where>
+			<if test="uploaderId != null">
+				AND ( UploaderId = #{uploaderId} )
+			</if>
+			<if test="frId != null">
+				AND ( Fr_Id = #{frId} )
+			</if>
+			<if test="frIds != null">
+				AND ( Fr_Id IN 
+				<foreach item="item" collection="frIds" open="(" separator="," close=")">
+					#{item}
+				</foreach>
+				)
+			</if>
+		</where>
+	</update>
+	
+	<delete id="removeFiles" parameterType="map">
+		DELETE FROM UASP_FileRelations
+		<where>
+		<if test="isBiz == null or isBiz == false">
+			AND ( BizId IS NULL )
+		</if>
+		<if test="uploaderId != null">
+			AND ( UploaderId = #{uploaderId} )
+		</if>
+		<if test="frId != null">
+			AND ( Fr_Id = #{frId} )
+		</if>
+		<if test="frIds != null">
+			AND ( Fr_Id IN 
+			<foreach item="item" collection="frIds" open="(" separator="," close=")">
+				#{item}
+			</foreach>
+			)
+		</if>
+		</where>
+	</delete>
+	
+	<sql id="fileRelationColumns">
+		t.Fr_Id,
+		t.File_Id,
+		t.Tenant_Id,
+		t.BizId,
+		t.Category,
+		t.FileName,
+		t.Postfix,
+		t.UploaderId,
+		t.UploadTime,
+		t.Downloads,
+		t.Serial,
+		t.Tags
+	</sql>
+	
+	<select id="getFileRelationByIds" parameterType="list" resultMap="fileRelationMap">
+		SELECT <include refid="fileRelationColumns" /> 
+			, u.DisplayName AS UploaderName
+		FROM UASP_FileRelations t 
+			INNER JOIN UASP_Users u ON t.UploaderId = u.User_Id
+		WHERE t.Fr_Id IN 
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</select>
+	
+	<update id="updateFileDownloads" parameterType="list" >
+		UPDATE UASP_FileRelations 
+		SET Downloads = Downloads + 1 
+		WHERE Fr_Id IN 
+		<foreach item="item" collection="list" open="(" separator="," close=")">
+			#{item}
+		</foreach>
+	</update>
+
+	<resultMap id="fileListItemMap" type="org.kayura.uasp.vo.FileListItem">
+		<id property="frId" column="Fr_Id" />
+		<result property="fileName" column="FileName" />
+		<result property="fileSize" column="FileSize" />
+		<result property="postfix" column="Postfix" />
+		<result property="uploaderId" column="UploaderId" />
+		<result property="uploaderName" column="UploaderName" />
+		<result property="uploadTime" column="UploadTime" />
+		<result property="isBiz" column="IsBiz" />
+		<result property="downloads" column="Downloads" />
+		<result property="allowChange" column="AllowChange" />
+		<result property="isEncrypted" column="IsEncrypted" />
+	</resultMap>
+	
+	<sql id="findFiles_SQL">
+		SELECT
+			t.Fr_Id,
+			t.FileName,
+			i.FileSize,
+			t.Postfix,
+			t.UploaderId,
+			u.DisplayName AS UploaderName,
+			t.UploadTime,
+			(!ISNULL(BizId) &amp;&amp; LENGTH(TRIM(BizId)) > 0) IsBiz,
+			t.Downloads,
+			i.AllowChange,
+			i.IsEncrypted
+		FROM uasp_filerelations AS t
+			INNER JOIN UASP_Users u ON t.UploaderId = u.User_Id
+			INNER JOIN uasp_fileinfos AS i ON t.File_Id = i.File_Id
+			<if test="sharerId != null or receiverId != null">
+			INNER JOIN uasp_fileshares AS s ON s.Fr_Id = t.Fr_Id
+			</if>
+		<where>
+			<if test="folderId != null and folderId != 'NULL'">
+				AND ( t.Folder_Id = #{folderId} )
+			</if>
+			<if test="folderId == 'NULL'">
+				AND ( t.Folder_Id IS NULL ) 
+			</if>
+			<if test="uploaderId != null">
+				AND ( t.UploaderId = #{uploaderId} )
+			</if>
+			<if test="sharerId != null or receiverId != null">
+				AND ( s.Folder_Id IS NULL ) 
+			</if>
+			<if test="sharerId != null">
+				AND ( s.Sharer_Id = #{sharerId} )
+			</if>
+			<if test="receiverId != null">
+				AND ( s.Receiver_Id = #{receiverId} )
+			</if>
+			<if test="bizId != null">
+				AND ( t.BizId = #{bizId} )
+			</if>
+			<if test="category != null">
+				AND ( t.Category = #{category} )
+			</if>
+			<if test="tag != null">
+				AND ( t.Tags LIKE #{tag} )
+			</if>
+		</where>
+		ORDER BY t.Serial, t.UploadTime
+	</sql>
+	
+	
+	<select id="findFiles" parameterType="map" resultMap="fileListItemMap">
+		<include refid="findFiles_SQL"></include>
+	</select>
+		
+	<select id="findFilesPage" parameterType="map" resultMap="fileListItemMap">
+		<include refid="findFiles_SQL"></include>
+	</select>
+	
+	<select id="getFileRelationTagsById" parameterType="string" resultType="string">
+		SELECT t.Tags FROM UASP_FileRelations t
+		WHERE ( t.Fr_Id = #{value} )
+	</select>
+	
+	<select id="findFileRelationsByMap" parameterType="map" resultMap="fileRelationMap">
+		SELECT 
+			<include refid="fileRelationColumns" />
+		FROM UASP_FileRelations t
+		<where>
+			<if test="fileId != null">
+				AND ( t.File_Id = #{fileId} )
+			</if>
+			<if test="bizId != null">
+				AND ( t.BizId = #{bizId} )
+			</if>
+			<if test="category != null">
+				AND ( t.Category = #{category} )
+			</if>
+			<if test="uploader != null">
+				AND ( t.UploaderId = #{uploader} OR t.UploaderName = #{uploader} )
+			</if>
+			<if test="tags != null">
+				AND ( t.Tags LIKE #{tags} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="existsFileRelationByMap" parameterType="map" resultType="boolean">
+		SELECT COUNT(1) > 0 
+		FROM UASP_FileRelations t
+		<where>
+			<if test="folderId != null">
+			AND ( t.Folder_Id = #{folderId} )
+			</if>
+			<if test="bizId != null">
+			AND ( t.BizId = #{bizId} )
+			</if>
+			<if test="uploaderId != null">
+			AND ( t.UploaderId = #{uploaderId} )
+			</if>
+		</where>
+	</select>
+	
+	<!-- Folders -->
+	
+	<sql id="fileFolderColumns">
+		t.Folder_Id,
+		t.Tenant_Id,
+		t.Parent_Id,
+		t.Creator_Id,
+		t.Group_Id,
+		g.Name GroupName,
+		t.`Name`,
+		t.Hidden
+	</sql>
+	
+	<select id="getFolderById" parameterType="map" resultMap="fileFolderMap">
+		SELECT
+			<include refid="fileFolderColumns" />
+		FROM uasp_filefolders AS t
+			LEFT JOIN uasp_groups g ON g.Group_Id = t.Group_Id
+		WHERE (t.Folder_Id = #{value})
+	</select>
+	
+	<select id="existsFolderById" parameterType="string" resultType="boolean">
+		SELECT COUNT(1) > 0 
+		FROM uasp_filefolders
+		WHERE ( Folder_Id = #{value} )
+	</select>
+	
+	<select id="getFolderChildsById" parameterType="string" resultType="integer">
+		SELECT COUNT(1)
+		FROM uasp_filefolders
+		WHERE ( Parent_Id = #{value} )
+	</select>
+	
+	<select id="getFolders" parameterType="map" resultMap="fileFolderMap">
+		SELECT
+			<include refid="fileFolderColumns" />
+		FROM uasp_filefolders AS t
+			LEFT JOIN uasp_groups g ON g.Group_Id = t.Group_Id
+		<where>
+			<if test="folderId != null">
+				AND (t.Folder_Id = #{folderId} )
+			</if>
+			<if test="parentId != null">
+				AND ( t.Parent_Id = #{parentId} )
+			</if>
+			<if test="isRoot == true">
+				AND ( t.Tenant_Id IS NULL )
+			</if>
+			<if test="isRoot == false and userId != null">
+				AND ((t.Tenant_Id IS NULL) AND (Hidden = 0) ) OR
+				((t.Creator_Id = #{userId}) AND (t.Group_Id IS NULL) ) OR 
+				((t.Group_Id IS NOT NULL) AND (Hidden = 0) AND (
+					EXISTS (SELECT 1 FROM uasp_groupusers u WHERE u.Group_Id = t.Group_Id AND u.User_Id = #{userId}) OR
+					EXISTS (SELECT 1 FROM uasp_grouproles g JOIN uasp_userroles r ON g.Role_Id = r.Role_Id AND r.User_Id = #{userId}) 
+				))
+			</if>
+		</where>
+	</select>
+	
+	<insert id="insertFolder" parameterType="org.kayura.uasp.po.FileFolder">
+		INSERT uasp_filefolders (
+			Folder_Id,
+			Tenant_Id,
+			Parent_Id,
+			Creator_Id,
+			Group_Id,
+			Name,
+			Hidden
+		) VALUES (
+			#{folderId},
+			#{tenantId},
+			#{parentId},
+			#{creatorId},
+			#{groupId},
+			#{name},
+			#{hidden}
+		)
+	</insert>
+	
+	<update id="updateFolder" parameterType="map">
+		UPDATE uasp_filefolders
+		<set>
+			<if test="parentId != null">
+			Parent_Id = #{parentId},
+			</if>
+			<if test="name != null">
+			Name = #{name},
+			</if>
+			<if test="hidden != null">
+			Hidden = #{hidden},
+			</if>
+		</set>
+		WHERE Folder_Id = #{folderId}
+	</update>
+	
+	<delete id="deleteFolder" parameterType="string">
+		DELETE FROM uasp_filefolders
+		WHERE Folder_Id = #{folderId}
+	</delete>
+	
+	<!-- Shares -->
+	
+	<select id="getFileShares" parameterType="map" resultMap="fileShareMap">
+		SELECT
+			t.FileShare_Id,
+			t.Sharer_Id,
+			<if test="receiverId != null">
+			s.DisplayName AS SharerName,
+			</if>
+			t.Receiver_Id,
+			<if test="sharerId != null">
+			r.DisplayName AS ReceiverName,
+			</if>
+			t.Folder_Id,
+			<if test="findType == null or findType == 'FOLDER' ">
+			f.Name FolderName,
+			</if>
+			t.Fr_Id,
+			<if test="findType == null or findType == 'FILE' ">
+			c.FileName,
+			</if>
+			t.CreateTime
+		FROM uasp_fileshares AS t
+		<if test="sharerId != null">
+		LEFT JOIN uasp_users AS r ON t.Receiver_Id = r.User_Id
+		</if>
+		<if test="receiverId != null">
+		LEFT JOIN uasp_users AS s ON t.Sharer_Id = s.User_Id
+		</if>
+		<if test="findType == null or findType == 'FOLDER' ">
+		LEFT JOIN uasp_filefolders AS f ON t.Folder_Id = f.Folder_Id
+		</if>
+		<if test="findType == null or findType == 'FILE' ">
+		LEFT JOIN uasp_filerelations AS c ON t.Fr_Id = c.Fr_Id
+		</if>
+		<where>
+			<if test="sharerId != null">
+				AND ( t.Sharer_Id = #{sharerId} )
+			</if>
+			<if test="receiverId != null">
+				AND ( t.Receiver_Id = #{receiverId} )
+			</if>
+			<if test="findType == 'FOLDER' ">
+				AND ( t.Folder_Id IS NOT NULL )
+			</if>
+			<if test="findType == 'FILE' ">
+				AND ( t.Fr_Id IS NOT NULL )
+			</if>
+		</where>
+	</select>
+		
+	
+</mapper>

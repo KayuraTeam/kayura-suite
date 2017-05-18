@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.kayura.formbuilder.repository.FormDataMapper">
+
+	<resultMap type="org.kayura.formbuilder.model.FormData" id="formDataMap">
+		<result property="dataId" column="Data_Id" />
+		<result property="modelId" column="Model_Id" />
+		<result property="view" column="View" />
+		<result property="title" column="Title" />
+		<result property="content" column="Content" typeHandler="jsonTypeHandler" />
+		<result property="createTime" column="CreateTime" />
+		<result property="creator" column="Creator" />
+		<result property="updateTime" column="UpdateTime" />
+	</resultMap>
+	
+	<select id="selectFormDatas" parameterType="map" resultMap="formDataMap">
+		SELECT
+			t.Data_Id,
+			t.Model_Id,
+			t.Title,
+			t.View,
+			t.CreateTime,
+			t.Creator,
+			t.UpdateTime
+		FROM uasp_formdata AS t
+		<if test="tenantId != null or formKey != null or modelCode != null">
+			INNER JOIN uasp_formmodels AS m ON t.Model_Id = m.Model_Id
+		</if>
+		<where>
+			<if test="tenantId != null">
+				AND ( m.Tenant_Id = #{tenantId} )
+			</if>
+			<if test="formKey != null">
+				AND ( m.FormKey = #{formKey} )
+			</if>
+			<if test="modelCode != null">
+				AND ( m.Code = #{modelCode} )
+			</if>
+			<if test="modelId != null">
+				AND ( t.Model_Id != #{modelId} )
+			</if>
+			<if test="creator != null">
+				AND ( t.Creator = #{creator} )
+			</if>
+			<if test="keyword != null">
+				AND ( t.Title LIKE #{keyword} )
+			</if>
+		</where>
+	</select>
+	
+	<select id="selectFormData" parameterType="map" resultMap="formDataMap">
+		SELECT
+			t.Data_Id,
+			t.Model_Id,
+			t.View,
+			t.Title,
+			t.Content,
+			t.CreateTime,
+			t.Creator,
+			t.UpdateTime
+		FROM uasp_formdata AS t
+		<where>
+			<if test="dataId != null">
+				AND ( t.Data_Id = #{dataId} )
+			</if>
+		</where>
+		ORDER BY t.UpdateTime DESC
+		LIMIT 1
+	</select>
+	
+	<insert id="insertFormData" parameterType="org.kayura.formbuilder.model.FormData">
+		INSERT INTO uasp_formdata (
+			Data_Id,
+			Model_Id,
+			View,
+			Title,
+			Content,
+			CreateTime,
+			Creator,
+			UpdateTime
+		) VALUES (
+			#{dataId},
+			#{modelId},
+			#{view},
+			#{title},
+			#{content,typeHandler=jsonTypeHandler},
+			#{createTime},
+			#{creator},
+			#{updateTime}
+		)
+	</insert>
+	
+	<update id="updateFormData" parameterType="map">
+		UPDATE uasp_formdata
+		<set>
+			<if test="title != null">Title = #{title},</if>
+			<if test="content != null">Content = #{content,typeHandler=jsonTypeHandler},</if>
+			<if test="createTime != null">CreateTime = #{createTime},</if>
+			<if test="creator != null">Creator = #{creator},</if>
+			<if test="updateTime != null">UpdateTime = #{updateTime},</if>
+		</set>
+		WHERE Data_Id = #{dataId} 
+	</update>
+	
+	<delete id="deleteFormData" parameterType="map">
+		DELETE FROM uasp_formdata
+		<where>
+			<if test="dataId != null">
+				AND ( t.Data_Id = #{dataId} )
+			</if>
+			<if test="modelId != null">
+				AND ( t.Model_Id = #{modelId} )
+			</if>
+		</where>
+	</delete>
+
+</mapper>

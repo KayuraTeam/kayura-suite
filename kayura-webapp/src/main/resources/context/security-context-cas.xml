@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans:beans xmlns="http://www.springframework.org/schema/security"
+	xmlns:beans="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+	<!-- 定义不需要过滤的请求路径,定义在这里可以跳过所有过滤器 -->
+	<http pattern="/res/**" security="none" />
+	<http pattern="/error/**" security="none" />
+	<http pattern="/example/**" security="none" />
+
+	<!-- 配置访问限制规则 -->
+	<http entry-point-ref="loginEntryPoint">
+		
+ 		<intercept-url pattern="/login" access="permitAll" />
+ 		<intercept-url pattern="/login/cas**" access="permitAll" />
+ 		
+		<!-- 定义需要授权访问的请求路径 -->
+		<intercept-url pattern="/admin/**" access="hasRole('ADMIN') or hasRole('ROOT')" />
+		<intercept-url pattern="/**" access="hasRole('USER')" />
+
+		<!-- 防止跨站请求伪造攻击 -->
+		<csrf disabled="true"/>
+		<headers>
+			<frame-options policy="SAMEORIGIN" />
+		</headers>
+		
+		<!-- 用户登出配置 -->
+		<logout logout-url="/logout" />
+
+		<!-- 拒绝访问时的处理配置 -->
+		<access-denied-handler error-page="/error/403" />
+		<!-- 用户会话配置 -->
+		<session-management invalid-session-url="/logout" session-authentication-strategy-ref="sas" />
+
+		<!-- 自定义过滤器: 验证码安全过滤器 -->
+		<custom-filter ref="privilegeFilter" after="FORM_LOGIN_FILTER"/>
+		<!-- 使用 CAS 单点登录过滤器 -->
+		<custom-filter ref="singleLogoutFilter" before="CAS_FILTER"/>
+		<custom-filter ref="requestSingleLogoutFilter" before="LOGOUT_FILTER" />  
+		<custom-filter ref="casLoginFilter" position="CAS_FILTER" />
+		<!-- Session 管理过滤器 -->
+		<custom-filter ref="concurrencyFilter" position="CONCURRENT_SESSION_FILTER" />
+		
+	</http>
+
+	<!-- 使用了 CAS 单点登录入口 -->
+	<beans:bean id="loginEntryPoint"
+		class="org.springframework.security.cas.web.CasAuthenticationEntryPoint">
+		<beans:property name="loginUrl" value="${cas.service.root}login?locale=zh_CN" />
+		<beans:property name="serviceProperties" ref="serviceProperties" />
+	</beans:bean>
+	<beans:bean id="serviceProperties" class="org.springframework.security.cas.ServiceProperties">
+		<beans:property name="service" value="${cas.app.root}login/cas" />
+		<beans:property name="authenticateAllArtifacts" value="true" />
+	</beans:bean>
+	
+	<beans:bean id="casLoginFilter" class="org.springframework.security.cas.web.CasAuthenticationFilter">
+		<beans:property name="authenticationManager" ref="authenticationManager" />
+		<beans:property name="serviceProperties" ref="serviceProperties" />
+		<beans:property name="sessionAuthenticationStrategy" ref="sas" />
+		<beans:property name="proxyGrantingTicketStorage" ref="pgtStorage" />
+		<beans:property name="proxyReceptorUrl" value="/login/cas/proxyreceptor" />
+		<beans:property name="authenticationDetailsSource">
+			<beans:bean class="org.springframework.security.cas.web.authentication.ServiceAuthenticationDetailsSource">
+				<beans:constructor-arg ref="serviceProperties" />
+			</beans:bean>
+		</beans:property>
+		<beans:property name="authenticationFailureHandler">
+			<beans:bean class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+				<beans:property name="defaultFailureUrl" value="/login?t=casexpired" />
+			</beans:bean>
+		</beans:property>
+	</beans:bean>
+	
+	<beans:bean id="pgtStorage" class="org.jasig.cas.client.proxy.ProxyGrantingTicketStorageImpl" />
+	<beans:bean id="casAuthProvider" class="org.springframework.security.cas.authentication.CasAuthenticationProvider">
+		<beans:property name="serviceProperties" ref="serviceProperties" />
+		<beans:property name="key" value="${cas.authkey}" />
+		<beans:property name="authenticationUserDetailsService">
+			<beans:bean class="org.springframework.security.core.userdetails.UserDetailsByNameServiceWrapper">
+				<beans:constructor-arg ref="userDetailServiceImpl" />
+			</beans:bean>
+		</beans:property>
+		<beans:property name="ticketValidator">
+			<beans:bean class="org.jasig.cas.client.validation.Cas20ProxyTicketValidator">
+				<beans:constructor-arg value="${cas.service.root}" />
+				<beans:property name="acceptAnyProxy" value="true" />
+				<beans:property name="proxyCallbackUrl" value="/login/cas/proxyreceptor" />
+				<beans:property name="proxyGrantingTicketStorage" ref="pgtStorage" />
+			</beans:bean>
+		</beans:property>
+<!-- 		<beans:property name="statelessTicketCache">
+			<beans:bean class="org.springframework.security.cas.authentication.EhCacheBasedTicketCache">
+				<beans:property name="cache">
+					<beans:bean class="net.sf.ehcache.Cache" init-method="initialise" destroy-method="dispose">
+						<beans:constructor-arg value="casTickets" />
+						<beans:constructor-arg value="50" />
+						<beans:constructor-arg value="true" />
+						<beans:constructor-arg value="false" />
+						<beans:constructor-arg value="3600" />
+						<beans:constructor-arg value="90" />
+					</beans:bean>
+				</beans:property>
+			</beans:bean>
+		</beans:property> -->
+	</beans:bean>
+	
+	<!-- 注销客户端 -->  
+    <beans:bean id="singleLogoutFilter" class="org.jasig.cas.client.session.SingleSignOutFilter" />
+	<!-- 注销服务器端 -->
+	<beans:bean id="requestSingleLogoutFilter"
+		class="org.springframework.security.web.authentication.logout.LogoutFilter">
+		<beans:constructor-arg value="${cas.service.root}logout?locale=zh_CN" />
+		<beans:constructor-arg>
+			<beans:bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler" />
+		</beans:constructor-arg>
+		<beans:property name="filterProcessesUrl" value="/logout" />
+	</beans:bean>
+   
+	<!-- 用于Session并发控制的过滤器 -->
+	<beans:bean id="concurrencyFilter" class="org.springframework.security.web.session.ConcurrentSessionFilter">
+		<beans:constructor-arg name="sessionRegistry" ref="sessionRegistry" />
+		<beans:constructor-arg name="expiredUrl" value="/logout" />
+	</beans:bean>
+	
+	<!-- 用户功能操作权限验证过滤器 -->
+	<beans:bean id="privilegeFilter" class="org.kayura.uasp.security.PrivilegeAuthenticationFilter">
+		<beans:property name="authenticationFailureHandler">
+			<beans:bean
+				class="org.kayura.uasp.security.ExceptionMappingExAuthenticationFailureHandler">
+				<beans:property name="exceptionMappings">
+					<beans:map key-type="java.lang.String" value-type="java.lang.String">
+						<beans:entry 
+							key="org.kayura.uasp.security.NonePrivilegeException" 
+							value="/error/403">
+						</beans:entry>
+						<beans:entry 
+							key="org.kayura.uasp.security.AjaxNonePrivilegeException" 
+							value="/error/403.json">
+						</beans:entry>
+					</beans:map>
+				</beans:property>
+			</beans:bean>
+		</beans:property>
+	</beans:bean>
+	
+	<beans:bean id="sas" class="org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy">
+		<beans:constructor-arg>
+			<beans:list>
+				<beans:bean class="org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy">
+					<beans:constructor-arg ref="sessionRegistry"/>
+					<beans:property name="maximumSessions" value="1" />
+					<beans:property name="exceptionIfMaximumExceeded" value="false" />
+				</beans:bean>
+				<beans:bean class="org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy">
+					<beans:constructor-arg ref="sessionRegistry"/>
+				</beans:bean>
+			</beans:list>
+		</beans:constructor-arg>
+	</beans:bean>
+	<beans:bean id="sessionRegistry" class="org.springframework.security.core.session.SessionRegistryImpl" />
+	
+	<!-- 注册认证管理器实例 -->
+	<authentication-manager alias="authenticationManager">
+		<authentication-provider ref="casAuthProvider" />
+	</authentication-manager>
+	<beans:bean id="userDetailServiceImpl" class="org.kayura.uasp.security.UserDetailServiceImpl">
+		<beans:property name="userService" ref="userServiceImpl" />
+	</beans:bean>
+ 	<beans:bean id="passwordEncoder" class="org.springframework.security.authentication.encoding.ShaPasswordEncoder">
+		<beans:constructor-arg name="strength" value="256"/>
+	</beans:bean>
+	
+</beans:beans>

@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.kayura.example.dao.SupplierMapper">
+
+	<resultMap id="BaseResultMap" type="org.kayura.example.po.Supplier">
+		<id column="SupplierID" property="id" />
+		<result column="CompanyName" property="name" />
+		<result column="ContactName" property="contactName" />
+		<result column="ContactTitle" property="contactTitle" />
+		<result column="Address" property="address" />
+		<result column="City" property="city" />
+		<result column="Region" property="region" />
+		<result column="PostalCode" property="postalCode" />
+		<result column="Country" property="country" />
+		<result column="Phone" property="phone" />
+		<result column="Fax" property="fax" />
+		<result column="HomePage" property="homePage" />
+	</resultMap>
+	
+	<sql id="Base_Column_List">
+		SupplierID, CompanyName, ContactName, ContactTitle,
+		Address, City, Region,
+		PostalCode, Country, Phone, Fax, HomePage
+	</sql>
+	
+	<select id="selectByKey" resultMap="BaseResultMap" parameterType="int">
+		select
+		<include refid="Base_Column_List" />
+		from example_suppliers
+		where SupplierID = #{id}
+	</select>
+	
+	<delete id="deleteByKey" parameterType="int">
+		delete from example_suppliers
+		where SupplierID = #{id}
+	</delete>
+	
+	<insert id="insert" parameterType="org.kayura.example.po.Supplier">
+		insert into example_suppliers (
+			CompanyName, 
+			ContactName, 
+			ContactTitle, 
+			Address, 
+			City, 
+			Region, 
+			PostalCode, 
+			Country, 
+			Phone, 
+			Fax, 
+			HomePage
+		) values (
+			#{name}, 
+			#{contactName},
+			#{contactTitle},
+			#{address}, 
+			#{city},
+			#{region}, 
+			#{postalCode},
+			#{country},
+			#{phone},
+			#{fax}, 
+			#{homePage}
+		)
+	</insert>
+	
+	<insert id="insertSelective" parameterType="org.kayura.example.po.Supplier">
+		insert into example_suppliers
+		<trim prefix="(" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				CompanyName,
+			</if>
+			<if test="contactName != null">
+				ContactName,
+			</if>
+			<if test="contactTitle != null">
+				ContactTitle,
+			</if>
+			<if test="address != null">
+				Address,
+			</if>
+			<if test="city != null">
+				City,
+			</if>
+			<if test="region != null">
+				Region,
+			</if>
+			<if test="postalCode != null">
+				PostalCode,
+			</if>
+			<if test="country != null">
+				Country,
+			</if>
+			<if test="phone != null">
+				Phone,
+			</if>
+			<if test="fax != null">
+				Fax,
+			</if>
+			<if test="homePage != null">
+				HomePage,
+			</if>
+		</trim>
+		<trim prefix="values (" suffix=")" suffixOverrides=",">
+			<if test="name != null">
+				#{name},
+			</if>
+			<if test="contactName != null">
+				#{contactName},
+			</if>
+			<if test="contactTitle != null">
+				#{contactTitle},
+			</if>
+			<if test="address != null">
+				#{address},
+			</if>
+			<if test="city != null">
+				#{city},
+			</if>
+			<if test="region != null">
+				#{region},
+			</if>
+			<if test="postalCode != null">
+				#{postalCode},
+			</if>
+			<if test="country != null">
+				#{country},
+			</if>
+			<if test="phone != null">
+				#{phone},
+			</if>
+			<if test="fax != null">
+				#{fax},
+			</if>
+			<if test="homePage != null">
+				#{homePage},
+			</if>
+		</trim>
+	</insert>
+	
+	<update id="updateBySelective" parameterType="org.kayura.example.po.Supplier">
+		update example_suppliers
+		<set>
+			<if test="name != null">
+				CompanyName = #{name},
+			</if>
+			<if test="contactName != null">
+				ContactName = #{contactName},
+			</if>
+			<if test="contactTitle != null">
+				ContactTitle = #{contactTitle},
+			</if>
+			<if test="address != null">
+				Address = #{address},
+			</if>
+			<if test="city != null">
+				City = #{city},
+			</if>
+			<if test="region != null">
+				Region = #{region},
+			</if>
+			<if test="postalCode != null">
+				PostalCode = #{postalCode},
+			</if>
+			<if test="country != null">
+				Country = #{country},
+			</if>
+			<if test="phone != null">
+				Phone = #{phone},
+			</if>
+			<if test="fax != null">
+				Fax = #{fax},
+			</if>
+			<if test="homePage != null">
+				HomePage = #{homePage},
+			</if>
+		</set>
+		where SupplierID = #{id}
+	</update>
+	
+	<update id="updateByKey" parameterType="org.kayura.example.po.Supplier">
+		update example_suppliers
+		set CompanyName = #{name},
+			ContactName = #{contactName},
+			ContactTitle = #{contactTitle},
+			Address = #{address},
+			City = #{city},
+			Region = #{region},
+			PostalCode = #{postalCode},
+			Country = #{country},
+			Phone = #{phone},
+			Fax = #{fax},
+			HomePage = #{homePage}
+		where SupplierID = #{id}
+	</update>
+	
+</mapper>
